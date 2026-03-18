@@ -17,35 +17,27 @@ export default function Home() {
     try {
       const data = await api.confessions.list(cat ? { category: cat } : {})
       setConfessions(data.confessions || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) } 
+    finally { setLoading(false) }
   }
 
   useEffect(() => { load(category) }, [category])
 
-  function onSubmitted(c) {
-    setShowCompose(false)
-    setConfessions(prev => [c, ...prev])
-  }
-
   return (
     <main>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 24 }}>
-        <div>
-          <h1 className="page-title">Pettegolezzi freschi</h1>
-          <p className="page-subtitle">Leggi solo dopo aver ascoltato</p>
+      <header style={{ marginBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="page-title">Lo Spiolo</h1>
+          <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
+            {showCompose ? 'Chiudi' : '+ Confessa'}
+          </button>
         </div>
-        <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
-          {showCompose ? '✕ Chiudi' : '+ Confessa'}
-        </button>
-      </div>
+        <p className="page-subtitle">I sussurri che non dovresti sentire.</p>
+      </header>
 
-      {showCompose && <ComposeForm onSubmitted={onSubmitted} />}
+      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); load(category); }} />}
 
-      <div className="tabs-row">
+      <nav className="tabs-row">
         {CATS.map(c => (
           <button
             key={String(c)}
@@ -55,13 +47,16 @@ export default function Home() {
             {CAT_IT[String(c)] || c}
           </button>
         ))}
-      </div>
+      </nav>
 
-      {loading && <div className="loading">Caricamento segreti…</div>}
-      {!loading && confessions.length === 0 && (
-        <div className="empty-state">Nessuna confessione qui.<br/>Sii il primo spiolo.</div>
+      {loading ? (
+        <div className="loading">Intercettando segreti...</div>
+      ) : (
+        <div className="feed">
+          {confessions.length === 0 && <div className="empty-state">Nessuno sta spiando qui.</div>}
+          {confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
+        </div>
       )}
-      {confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
     </main>
   )
 }
