@@ -21,7 +21,7 @@ export default function ComposeForm({ onSubmitted }) {
       mr.onstop = () => setAudioBlob(new Blob(chunks, { type: 'audio/wav' }))
       mr.start()
       setRecording(true)
-    } catch (e) { alert("Attiva il microfono!") }
+    } catch (e) { alert("Per favore, consenti l'accesso al microfono!") }
   }
 
   function stopRecording() {
@@ -41,12 +41,12 @@ export default function ComposeForm({ onSubmitted }) {
       setText('')
       setAudioBlob(null)
       onSubmitted?.()
-    } catch (e) { alert("Errore invio!") }
+    } catch (e) { alert("Errore durante l'invio del segreto.") }
   }
 
   return (
     <div className="compose-area">
-      <label className="compose-label">Lo Spiolo — Confessa un segreto 🐦</label>
+      <div className="compose-label">Lo Spiolo — Confessa un segreto 🐦</div>
       
       <textarea 
         value={text} 
@@ -63,7 +63,7 @@ export default function ComposeForm({ onSubmitted }) {
           {recording ? '⏹ Stop' : '🎤 Registra Voce'}
         </button>
         
-        {audioBlob && <span style={{ color: '#da3633', fontSize: '0.8rem' }}>✓ Audio pronto</span>}
+        {audioBlob && <span style={{ color: '#58a6ff', fontSize: '0.85rem', fontWeight: 'bold' }}>✓ Audio pronto</span>}
         
         <select 
           className="select-cat" 
@@ -74,7 +74,7 @@ export default function ComposeForm({ onSubmitted }) {
         </select>
       </div>
 
-      <div style={{ textAlign: 'right', marginTop: '20px' }}>
+      <div style={{ textAlign: 'right', marginTop: '10px' }}>
         <button className="btn-primary" onClick={submit}>Spiola ora</button>
       </div>
     </div>
