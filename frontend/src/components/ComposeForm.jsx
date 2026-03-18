@@ -4,94 +4,72 @@ import { api } from '../api/client'
 const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
 
-// ─── WAV encoder ─────────────────────────────────────────────────────────────
+// ─── WAV encoder — identico a useRecorder.js originale ───────────────────────
 function audioBufferToWav(buffer) {
-  const numChannels = buffer.numberOfChannels
+  const numCh = buffer.numberOfChannels
   const sampleRate = buffer.sampleRate
-  const bitDepth = 16
-  let audioData
-
-  if (numChannels === 2) {
-    const l = buffer.getChannelData(0)
-    const r = buffer.getChannelData(1)
-    const interleaved = new Float32Array(l.length + r.length)
-    for (let i = 0; i < l.length; i++) {
-      interleaved[2 * i] = l[i]
-      interleaved[2 * i + 1] = r[i]
-    }
-    audioData = interleaved
-  } else {
-    audioData = buffer.getChannelData(0)
+  const length = buffer.length * numCh * 2
+  const arrayBuffer = new ArrayBuffer(44 + length)
+  const view = new DataView(arrayBuffer)
+  const write = (offset, str) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i))
   }
-
-  const bytesPerSample = bitDepth / 8
-  const blockAlign = numChannels * bytesPerSample
-  const dataSize = audioData.length * bytesPerSample
-  const bufferWav = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(bufferWav)
-
-  function writeString(offset, string) {
-    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i))
-  }
-
-  writeString(0, 'RIFF')
-  view.setUint32(4, 36 + dataSize, true)
-  writeString(8, 'WAVE')
-  writeString(12, 'fmt ')
+  write(0, 'RIFF')
+  view.setUint32(4, 36 + length, true)
+  write(8, 'WAVE')
+  write(12, 'fmt ')
   view.setUint32(16, 16, true)
   view.setUint16(20, 1, true)
-  view.setUint16(22, numChannels, true)
+  view.setUint16(22, numCh, true)
   view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * blockAlign, true)
-  view.setUint16(32, blockAlign, true)
-  view.setUint16(34, bitDepth, true)
-  writeString(36, 'data')
-  view.setUint32(40, dataSize, true)
-
+  view.setUint32(28, sampleRate * numCh * 2, true)
+  view.setUint16(32, numCh * 2, true)
+  view.setUint16(34, 16, true)
+  write(36, 'data')
+  view.setUint32(40, length, true)
   let offset = 44
-  for (let i = 0; i < audioData.length; i++) {
-    let s = Math.max(-1, Math.min(1, audioData[i]))
-    s = s < 0 ? s * 0x8000 : s * 0x7FFF
-    view.setInt16(offset, s, true)
-    offset += bytesPerSample
+  for (let i = 0; i < buffer.length; i++) {
+    for (let ch = 0; ch < numCh; ch++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]))
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
+      offset += 2
+    }
   }
-
-  return new Blob([bufferWav], { type: 'audio/wav' })
+  return new Blob([arrayBuffer], { type: 'audio/wav' })
 }
 
-// ─── Distorsione vocale: voce grave, irriconoscibile, senza artefatti ─────────
-async function processAndAlterAudio(rawBlob) {
-  const arrayBuffer = await rawBlob.arrayBuffer()
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-  const rawAudioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-  await audioContext.close()
+// ─── Distorsione vocale — identica a useRecorder.js originale ─────────────────
+// rate 0.72 = voce grave ~4 semitoni sotto, irriconoscibile
+async function distortAudio(blob) {
+  const arrayBuffer = await blob.arrayBuffer()
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  const ctx = new AudioCtx()
+  const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+  await ctx.close()
 
-  // 0.78 = voce più grave e leggermente rallentata, irriconoscibile ma naturale
-  const RATE = 0.78
-
-  // +1s di padding per evitare il troncamento dei primi secondi
-  const offlineContext = new OfflineAudioContext(
-    rawAudioBuffer.numberOfChannels,
-    Math.ceil(rawAudioBuffer.length / RATE) + rawAudioBuffer.sampleRate,
-    rawAudioBuffer.sampleRate
+  const rate = 0.72
+  const offlineCtx = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    Math.ceil(audioBuffer.length / rate),
+    audioBuffer.sampleRate
   )
-
-  const source = offlineContext.createBufferSource()
-  source.buffer = rawAudioBuffer
-  source.playbackRate.value = RATE
-  source.connect(offlineContext.destination)
+  const source = offlineCtx.createBufferSource()
+  source.buffer = audioBuffer
+  source.playbackRate.value = rate
+  source.connect(offlineCtx.destination)
   source.start(0)
 
-  const rendered = await offlineContext.startRendering()
+  const rendered = await offlineCtx.startRendering()
   return audioBufferToWav(rendered)
 }
 
-// ─── Groq Whisper: trascrive l'audio grezzo ───────────────────────────────────
+// ─── Groq Whisper: trascrive l'audio GREZZO (prima della distorsione) ─────────
 async function transcribeAudio(rawBlob) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
 
-  const file = new File([rawBlob], 'audio.wav', { type: 'audio/wav' })
+  // Manda il blob grezzo con il suo tipo originale (webm) — Whisper lo supporta
+  const file = new File([rawBlob], 'audio.webm', { type: rawBlob.type || 'audio/webm' })
   const formData = new FormData()
   formData.append('file', file)
   formData.append('model', 'whisper-large-v3')
@@ -164,23 +142,28 @@ export default function ComposeForm({ onSubmitted }) {
   const [statusMsg, setStatusMsg] = useState('')
 
   const mediaRecorderRef = useRef(null)
+  const chunksRef = useRef([])
 
   async function startRecording() {
     setErrorMsg('')
     setAudioBlob(null)
     setSummaryEdited('')
+    chunksRef.current = []
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream)
+
+      // Forza audio/webm esattamente come useRecorder.js originale
+      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' })
       mediaRecorderRef.current = mr
-      const chunks = []
-      mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
-        const rawBlob = new Blob(chunks, { type: 'audio/webm' })
+        const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
         await handleRecordingDone(rawBlob)
       }
+
       mr.start()
       setStep('recording')
     } catch (e) {
@@ -201,8 +184,9 @@ export default function ComposeForm({ onSubmitted }) {
       setStep('processing')
       setStatusMsg('Distorsione vocale e trascrizione in corso…')
 
+      // Distorsione e trascrizione in parallelo — più veloce
       const [censoredBlob, transcript] = await Promise.all([
-        processAndAlterAudio(rawBlob),
+        distortAudio(rawBlob),
         transcribeAudio(rawBlob),
       ])
 
@@ -254,6 +238,7 @@ export default function ComposeForm({ onSubmitted }) {
     setAudioBlob(null)
     setSummaryEdited('')
     setErrorMsg('')
+    chunksRef.current = []
   }
 
   return (
