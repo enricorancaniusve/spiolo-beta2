@@ -1,10 +1,10 @@
 :root {
-  --bg-dark: #0d1117;          /* Sfondo profondo */
-  --card-dark: #161b22;        /* Sfondo card */
-  --border-muted: #30363d;     /* Bordi sottili */
-  --text-main: #f0f6fc;        /* Testo chiaro */
-  --text-gray: #8b949e;        /* Testo secondario */
-  --accent: #58a6ff;           /* Blu per icone/tag */
+  --bg-dark: #0d1117;
+  --card-dark: #161b22;
+  --border-muted: #30363d;
+  --text-main: #f0f6fc;
+  --text-gray: #8b949e;
+  --accent: #58a6ff;
   --font-mono: 'DM Mono', monospace;
   --font-fancy: 'Fraunces', serif;
 }
@@ -15,113 +15,128 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-mono);
-  -webkit-font-smoothing: antialiased;
   display: flex;
   justify-content: center;
   min-height: 100vh;
 }
 
-#root {
-  width: 100%;
-  max-width: 640px;
-  padding: 40px 20px;
+#root { width: 100%; max-width: 600px; padding: 40px 20px; }
+
+/* HEADER & TITOLI */
+.page-title { font-family: var(--font-fancy); font-size: 3rem; margin-bottom: 8px; }
+.page-subtitle { color: var(--text-gray); margin-bottom: 2rem; font-size: 0.9rem; }
+
+/* TABS CATEGORIE (Sistemate) */
+.tabs-row {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0 30px 0;
+  flex-wrap: wrap;
 }
 
-/* --- TITOLI --- */
-.page-title {
-  font-family: var(--font-fancy);
-  font-size: 2.8rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  letter-spacing: -1.5px;
-}
-
-.page-subtitle {
+.tab-btn {
+  background: transparent;
+  border: 1px solid var(--border-muted);
   color: var(--text-gray);
-  font-size: 0.95rem;
-  margin-bottom: 2.5rem;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: 0.2s;
 }
 
-/* --- CARDS --- */
+.tab-btn.active {
+  background: var(--text-main);
+  color: var(--bg-dark);
+  border-color: var(--text-main);
+}
+
+/* AREA DI INVIO (COMPOSE FORM) - Sistemata */
+.compose-area {
+  background: var(--card-dark);
+  border: 1px solid var(--border-muted);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 40px;
+}
+
+.compose-title {
+  font-family: var(--font-fancy);
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+textarea {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-muted);
+  color: var(--text-main);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  resize: none;
+  min-height: 100px;
+}
+
+.record-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.record-btn {
+  background: #238636;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-btn.recording { background: #da3633; animation: pulse 1.5s infinite; }
+
+.select-cat {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-muted);
+  color: var(--text-main);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+}
+
+.compose-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+/* CARD CONFESSIONE (PULITA) */
 .confession-card {
   background-color: var(--card-dark);
   border: 1px solid var(--border-muted);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.confession-category span {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.confession-text {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin: 16px 0;
-  color: var(--text-main);
-}
-
-.censored-text {
-  color: var(--text-gray);
-  letter-spacing: 2px;
-}
-
-/* --- AUDIO & PLAYER --- */
-.audio-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  border-radius: 12px;
-  margin: 16px 0;
-}
-
-.play-btn {
+.btn-primary {
   background: var(--text-main);
   color: var(--bg-dark);
   border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 700;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
 }
 
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 30px;
-  flex: 1;
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
-
-.waveform-bar {
-  width: 3px;
-  background: var(--border-muted);
-  border-radius: 2px;
-}
-
-.waveform-bar.played { background: var(--accent); }
-
-/* --- REAZIONI --- */
-.reactions-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-muted);
-}
-
-.reaction-btn {
-  background: rgba(255, 25
