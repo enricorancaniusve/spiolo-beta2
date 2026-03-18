@@ -359,7 +359,7 @@ export default function ComposeForm({ onSubmitted }) {
               {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
             </select>
             <button className="btn-primary" onClick={submit} disabled={!summaryEdited.trim()}>
-              Spiola ora 🐦
+              Spiola ora 🗣️
             </button>
           </div>
         </div>
