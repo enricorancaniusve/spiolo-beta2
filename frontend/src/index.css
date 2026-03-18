@@ -1,184 +1,64 @@
 :root {
-  --bg-dark: #0d1117;          /* Sfondo profondo */
-  --card-dark: #161b22;        /* Sfondo delle cards */
-  --border-muted: #30363d;     /* Bordi sottili */
-  --text-main: #f0f6fc;        /* Testo principale */
-  --text-gray: #8b949e;        /* Testo secondario */
-  --accent: #58a6ff;           /* Blu accento */
-  --font-mono: 'DM Mono', monospace; /* */
-  --font-fancy: 'Fraunces', serif;   /* */
+  --bg-dark: #0d1117;
+  --card-dark: #161b22;
+  --border-muted: #30363d;
+  --text-main: #f0f6fc;
+  --text-gray: #8b949e;
+  --accent: #58a6ff;
+  --font-mono: 'DM Mono', monospace;
+  --font-fancy: 'Fraunces', serif;
 }
 
-/* Reset Globale */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-mono); }
+#root { width: 100%; max-width: 600px; padding: 40px 20px; margin: 0 auto; }
 
-body {
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  font-family: var(--font-mono);
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-}
+/* HEADER CENTRATO */
+.app-header { text-align: center; margin-bottom: 50px; }
+.page-title { font-family: var(--font-fancy); font-size: 3.5rem; margin-bottom: 10px; }
+.page-subtitle { color: var(--text-gray); font-size: 1rem; margin-bottom: 15px; font-style: italic; }
+.stats-row { font-size: 0.85rem; margin-bottom: 25px; }
+.stats-row b { color: var(--accent); }
 
-#root {
-  width: 100%;
-  max-width: 600px; /* Larghezza desktop */
-  padding: 40px 20px;
-}
-
-/* --- HEADER CENTRATO & RESPONSIVE --- */
-.app-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.page-title {
-  font-family: var(--font-fancy);
-  font-size: 3.5rem; /* Desktop */
-  margin-bottom: 8px;
-  letter-spacing: -2px;
-}
-
-.page-subtitle {
-  color: var(--text-gray);
-  font-size: 1rem;
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-
-.stats-row {
-  font-size: 0.85rem;
-  margin-bottom: 25px;
-}
-
-/* Tassonomia Spiolo */
+/* TASSONOMIA */
 .taxonomy-label {
-  background-color: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-muted);
   border-radius: 12px;
   padding: 20px;
-  margin: 25px 0;
+  margin-bottom: 30px;
   text-align: left;
 }
+.taxonomy-title { color: var(--accent); font-family: var(--font-fancy); margin-bottom: 8px; font-weight: 600; }
+.taxonomy-text { font-size: 0.85rem; line-height: 1.6; color: var(--text-gray); }
 
-.taxonomy-text {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--text-gray);
-}
-
-/* --- FILTRI CIRCOLARI (SCROLLABILI) --- */
+/* FILTRI CIRCOLARI */
 .tabs-row {
   display: flex;
-  justify-content: flex-start; /* Permette lo scroll su mobile */
   gap: 15px;
-  overflow-x: auto; /* Scroll orizzontale */
-  margin-bottom: 35px;
-  padding: 10px 0;
-  scrollbar-width: none; /* Nasconde scrollbar Firefox */
-  -webkit-overflow-scrolling: touch; /* Scroll fluido iOS */
+  overflow-x: auto;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+  justify-content: flex-start;
+  scrollbar-width: none;
 }
-
-.tabs-row::-webkit-scrollbar { display: none; } /* Nasconde scrollbar Chrome/Safari */
+.tabs-row::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-muted);
-  width: 65px;
-  height: 65px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0; /* Impedisce al cerchio di schiacciarsi */
-  transition: 0.2s;
+  width: 70px; height: 70px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: 0.2s;
 }
-
 .tab-btn.active { background: var(--accent); border-color: var(--accent); }
 .tab-btn.active span { color: var(--bg-dark); }
+.tab-emoji { font-size: 1.4rem; }
+.tab-name { font-size: 0.6rem; text-transform: uppercase; margin-top: 2px; }
 
-/* --- COMPOSE AREA --- */
-.compose-area {
-  background: var(--card-dark);
-  border: 1px solid var(--border-muted);
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 40px;
-}
-
-textarea {
-  width: 100%;
-  background: var(--bg-dark);
-  border: 1px solid var(--border-muted);
-  color: var(--text-main);
-  border-radius: 10px;
-  padding: 15px;
-  font-size: 1rem;
-  min-height: 140px;
-  resize: none;
-}
-
-/* --- AUDIO PLAYER --- */
-.audio-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.audio-track { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-
-/* --- REAZIONI CIRCOLARI --- */
-.reactions-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap; /* Avvolge su più righe se non c'è spazio */
-  padding-top: 15px;
-  border-top: 1px solid var(--border-muted);
-}
-
-.reaction-btn {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-/* --- MEDIA QUERIES PER MOBILE --- */
+/* MEDIA QUERIES (RESPONSIVE) */
 @media (max-width: 480px) {
-  #root { padding: 20px 15px; }
-  
-  .page-title {
-    font-size: 2.5rem; /* Riduce titolo su smartphone */
-  }
-
-  .compose-area {
-    padding: 15px; /* Meno spazio laterale su mobile */
-  }
-
-  .tab-btn {
-    width: 60px;
-    height: 60px;
-  }
-
-  .reaction-btn {
-    width: 45px;
-    height: 45px;
-  }
-
-  .taxonomy-label {
-    padding: 15px;
-  }
+  .page-title { font-size: 2.5rem; }
+  .tab-btn { width: 60px; height: 60px; }
+  .compose-area { padding: 20px; }
 }
