@@ -1,39 +1,101 @@
-/* --- NAVIGAZIONE SUPERIORE (SISTEMATA) --- */
-nav.main-nav {
-  display: flex;
-  justify-content: center; /* Centra i link */
-  gap: 30px;               /* Spazio tra le voci */
-  margin-bottom: 40px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-muted); /* Linea sottile di separazione */
+/* RESET TOTALE PER EVITARE SFONDI BIANCHI */
+html, body {
+  background-color: #0d1117 !important;
+  color: #f0f6fc !important;
+  margin: 0;
+  padding: 0;
 }
 
+:root {
+  --bg-dark: #0d1117;
+  --card-dark: #161b22;
+  --border-muted: #30363d;
+  --text-main: #f0f6fc;
+  --text-gray: #8b949e;
+  --accent: #58a6ff;
+  --font-mono: 'DM Mono', monospace;
+  --font-fancy: 'Fraunces', serif;
+}
+
+body {
+  font-family: var(--font-mono);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+#root { width: 100%; max-width: 600px; padding: 40px 20px; }
+
+/* --- NAVIGAZIONE SUPERIORE --- */
+nav.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  margin-bottom: 40px;
+}
 nav.main-nav a {
   color: var(--text-gray);
   text-decoration: none;
-  font-family: var(--font-mono);
   font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  position: relative;
+}
+nav.main-nav a.active { color: var(--text-main); border-bottom: 2px solid var(--accent); }
+
+/* --- HEADER CENTRATO --- */
+.app-header { text-align: center; margin-bottom: 50px; }
+.page-title { font-family: var(--font-fancy); font-size: 3.5rem; margin-bottom: 10px; color: var(--text-main); }
+.page-subtitle { color: var(--text-gray); font-style: italic; margin-bottom: 15px; }
+
+/* TASSONOMIA */
+.taxonomy-label {
+  background: var(--card-dark);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 30px 0;
+  text-align: left;
 }
 
-/* Effetto quando passi sopra o sei sulla pagina attiva */
-nav.main-nav a:hover, 
-nav.main-nav a.active {
-  color: var(--text-main);
+/* --- FILTRI CIRCOLARI --- */
+.tabs-row { display: flex; gap: 15px; justify-content: center; margin-bottom: 40px; overflow-x: auto; padding: 10px; }
+.tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-muted);
+  width: 70px; height: 70px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
 }
+.tab-btn.active { background: var(--accent); }
+.tab-btn.active span { color: var(--bg-dark) !important; }
 
-/* Pallino sotto il link attivo per un tocco Premium */
-nav.main-nav a.active::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background-color: var(--accent);
-  border-radius: 50%;
+/* --- CARD CONFESSIONE --- */
+.confession-card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-muted);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
 }
+.censored-text { color: var(--text-gray); letter-spacing: 2px; }
+
+/* --- PLAYER AUDIO --- */
+.audio-row {
+  display: flex; align-items: center; gap: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px; border-radius: 12px; margin: 15px 0;
+}
+.play-btn {
+  background: var(--text-main); color: var(--bg-dark); border: none;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+}
+.progress-container { height: 6px; background: var(--border-muted); border-radius: 3px; flex: 1; position: relative; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); position: absolute; left: 0; top: 0; }
+.time-display { font-size: 0.75rem; color: var(--text-gray); min-width: 80px; text-align: right; }
+
+/* --- REAZIONI CIRCOLARI --- */
+.reactions-row { display: flex; gap: 10px; margin-top: 20px; }
+.reaction-btn {
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
+  width: 50px; height: 50px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.reaction-btn.active { background: var(--accent); color: var(--bg-dark); }
