@@ -4,7 +4,7 @@ import { api } from '../api/client'
 const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
 
-// ─── WAV encoder (invariato dal tuo codice originale) ────────────────────────
+// ─── WAV encoder ─────────────────────────────────────────────────────────────
 function audioBufferToWav(buffer) {
   const numChannels = buffer.numberOfChannels
   const sampleRate = buffer.sampleRate
@@ -59,7 +59,7 @@ function audioBufferToWav(buffer) {
   return new Blob([bufferWav], { type: 'audio/wav' })
 }
 
-// ─── Pitch shifting (invariato dal tuo codice originale) ─────────────────────
+// ─── Pitch shifting ───────────────────────────────────────────────────────────
 async function processAndAlterAudio(rawBlob) {
   const PITCH_FACTOR = 1.3
   const arrayBuffer = await rawBlob.arrayBuffer()
@@ -68,7 +68,7 @@ async function processAndAlterAudio(rawBlob) {
   const newDuration = rawAudioBuffer.duration / PITCH_FACTOR
   const offlineContext = new OfflineAudioContext(
     rawAudioBuffer.numberOfChannels,
-    rawAudioBuffer.sampleRate * newDuration,
+    Math.ceil(rawAudioBuffer.sampleRate * newDuration),
     rawAudioBuffer.sampleRate
   )
   const source = offlineContext.createBufferSource()
@@ -80,9 +80,40 @@ async function processAndAlterAudio(rawBlob) {
   return audioBufferToWav(processed)
 }
 
-// ─── Chiama Groq per il riassunto ─────────────────────────────────────────────
-// Aggiungi VITE_GROQ_API_KEY nel file .env del frontend
-// Ottieni la chiave gratis su: https://console.groq.com
+// ─── Groq Whisper: trascrive l'audio grezzo ───────────────────────────────────
+async function transcribeAudio(rawBlob) {
+  const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
+  if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
+
+  // Groq Whisper vuole un file con nome e tipo corretto
+  const file = new File([rawBlob], 'audio.wav', { type: 'audio/wav' })
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('model', 'whisper-large-v3')
+  formData.append('language', 'it')
+  formData.append('response_format', 'json')
+
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      // NON impostare Content-Type: il browser lo imposta automaticamente con il boundary corretto
+    },
+    body: formData,
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('Whisper error:', err)
+    throw new Error('Errore trascrizione Whisper')
+  }
+
+  const data = await res.json()
+  return data.text?.trim() || ''
+}
+
+// ─── Groq llama: genera il titolo dal testo trascritto ────────────────────────
 async function generateSummary(transcript) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
@@ -95,91 +126,61 @@ async function generateSummary(transcript) {
     },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 120,
-      temperature: 0.4,
+      max_tokens: 80,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
           content:
             'Sei un assistente per un\'app di pettegolezzi anonimi chiamata "Lo Spiolo". ' +
-            'Ricevi la trascrizione di un messaggio vocale anonimo e devi generare un titolo/oggetto ' +
-            'breve e intrigante (max 12 parole) che descriva il pettegolezzo senza rivelare troppo. ' +
-            'Deve essere curioso, un po\' misterioso, come l\'oggetto di una email scandalosa. ' +
-            'Rispondi SOLO con il testo del titolo, senza virgolette o prefissi.',
+            'Ricevi la trascrizione di un messaggio vocale anonimo e devi generare un titolo ' +
+            'breve e intrigante (massimo 10 parole) che descriva il pettegolezzo senza rivelare troppo. ' +
+            'Deve essere curioso e misterioso, come l\'oggetto di una email scandalosa. ' +
+            'Rispondi SOLO con il testo del titolo, senza virgolette, senza prefissi, senza punteggiatura finale.',
         },
         {
           role: 'user',
-          content: `Trascrizione del messaggio vocale:\n"${transcript}"`,
+          content: `Trascrizione:\n"${transcript}"`,
         },
       ],
     }),
   })
 
-  if (!res.ok) throw new Error('Errore Groq API')
+  if (!res.ok) throw new Error('Errore Groq llama')
   const data = await res.json()
   return data.choices[0].message.content.trim()
 }
 
-// ─── STATI DEL FORM ───────────────────────────────────────────────────────────
-// idle → recording → processing (pitch) → summarizing → preview → submitting
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export default function ComposeForm({ onSubmitted }) {
   const [step, setStep] = useState('idle')
-  // idle | recording | processing | summarizing | preview | submitting | error
+  // idle | recording | processing | transcribing | summarizing | preview | submitting | error
 
   const [category, setCategory] = useState('secrets')
   const [audioBlob, setAudioBlob] = useState(null)
   const [summaryEdited, setSummaryEdited] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [statusMsg, setStatusMsg] = useState('')
 
   const mediaRecorderRef = useRef(null)
-  const transcriptRef = useRef('')
-  const recognitionRef = useRef(null)
 
-  const isSpeechSupported =
-    typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
-
-  // ─── AVVIA registrazione + trascrizione in parallelo ──────────────────────
+  // ─── AVVIA registrazione ────────────────────────────────────────────────────
   async function startRecording() {
     setErrorMsg('')
     setAudioBlob(null)
     setSummaryEdited('')
-    transcriptRef.current = ''
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-      // 1. MediaRecorder per l'audio (poi verrà pitch-shiftato)
       const mr = new MediaRecorder(stream)
       mediaRecorderRef.current = mr
       const chunks = []
-      mr.ondataavailable = (e) => chunks.push(e.data)
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
-        await handleRecordingDone(chunks)
+        const rawBlob = new Blob(chunks, { type: 'audio/webm' })
+        await handleRecordingDone(rawBlob)
       }
-
-      // 2. Web Speech API per la trascrizione, gira in parallelo sullo stesso microfono
-      if (isSpeechSupported) {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-        const recognition = new SR()
-        recognition.lang = 'it-IT'
-        recognition.continuous = true
-        recognition.interimResults = false
-        recognition.onresult = (e) => {
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) {
-              transcriptRef.current += e.results[i][0].transcript + ' '
-            }
-          }
-        }
-        recognition.onerror = (e) => console.warn('Speech recognition error:', e.error)
-        recognitionRef.current = recognition
-        recognition.start()
-      }
-
       mr.start()
       setStep('recording')
     } catch (e) {
@@ -188,44 +189,51 @@ export default function ComposeForm({ onSubmitted }) {
     }
   }
 
-  // ─── STOP registrazione ────────────────────────────────────────────────────
+  // ─── STOP registrazione ─────────────────────────────────────────────────────
   function stopRecording() {
-    if (recognitionRef.current) recognitionRef.current.stop()
-    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop()
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
     setStep('processing')
   }
 
-  // ─── DOPO stop: pitch shift → riassunto ───────────────────────────────────
-  async function handleRecordingDone(chunks) {
+  // ─── PIPELINE: pitch shift + trascrizione Whisper + titolo llama ────────────
+  async function handleRecordingDone(rawBlob) {
     try {
-      // Fase 1: pitch shift audio
+      // Fase 1: pitch shift e trascrizione Whisper girano in parallelo — più veloce!
       setStep('processing')
-      const rawBlob = new Blob(chunks, { type: 'audio/wav' })
-      const censoredBlob = await processAndAlterAudio(rawBlob)
+      setStatusMsg('Censura vocale e trascrizione in corso…')
+
+      const [censoredBlob, transcript] = await Promise.all([
+        processAndAlterAudio(rawBlob),
+        transcribeAudio(rawBlob),
+      ])
+
       setAudioBlob(censoredBlob)
+      console.log('Trascrizione Whisper:', transcript) // utile per debug
 
-      // Fase 2: riassunto da Groq
-      setStep('summarizing')
-      const transcript = transcriptRef.current.trim()
-
-      let generatedSummary
-      if (!transcript || transcript.length < 5) {
-        // Fallback se la trascrizione è vuota (browser non supportato o silenzio)
-        generatedSummary = 'Un segreto che non puoi non ascoltare…'
-      } else {
-        generatedSummary = await generateSummary(transcript)
+      if (!transcript || transcript.length < 3) {
+        // Audio troppo corto o silenzioso
+        setSummaryEdited('Un segreto che non puoi non ascoltare…')
+        setStep('preview')
+        return
       }
 
-      setSummaryEdited(generatedSummary)
+      // Fase 2: genera titolo con llama
+      setStep('summarizing')
+      setStatusMsg('Lo Spiolo sta elaborando il titolo…')
+      const title = await generateSummary(transcript)
+
+      setSummaryEdited(title)
       setStep('preview')
     } catch (e) {
       console.error(e)
-      setErrorMsg("Errore durante l'elaborazione. Riprova.")
+      setErrorMsg(`Errore: ${e.message}. Riprova.`)
       setStep('error')
     }
   }
 
-  // ─── PUBBLICA ──────────────────────────────────────────────────────────────
+  // ─── PUBBLICA ───────────────────────────────────────────────────────────────
   async function submit() {
     if (!audioBlob || !summaryEdited.trim()) return
     setStep('submitting')
@@ -248,57 +256,41 @@ export default function ComposeForm({ onSubmitted }) {
   }
 
   function reset() {
-    if (recognitionRef.current) recognitionRef.current.abort()
     if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop()
     setStep('idle')
     setAudioBlob(null)
     setSummaryEdited('')
     setErrorMsg('')
-    transcriptRef.current = ''
   }
 
-  // ─── RENDER ────────────────────────────────────────────────────────────────
+  // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="compose-area">
       <div className="compose-label">Lo Spiolo — Registra il tuo segreto 🐦</div>
 
-      {/* STEP: idle */}
+      {/* idle */}
       {step === 'idle' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {!isSpeechSupported && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--accent)', padding: '8px 12px', background: 'rgba(255,200,0,0.08)', borderRadius: 8 }}>
-              ⚠️ Usa Chrome o Edge per la trascrizione automatica. Su altri browser il titolo sarà generico.
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              className="btn-primary"
-              style={{ background: '#238636', color: 'white' }}
-              onClick={startRecording}
-            >
-              🎤 Registra il segreto
-            </button>
-            <select
-              className="select-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
-            </select>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            className="btn-primary"
+            style={{ background: '#238636', color: 'white' }}
+            onClick={startRecording}
+          >
+            🎤 Registra il segreto
+          </button>
+          <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
+          </select>
         </div>
       )}
 
-      {/* STEP: recording */}
+      {/* recording */}
       {step === 'recording' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
-              width: 10, height: 10, borderRadius: '50%',
-              background: '#da3633',
-              animation: 'spioloPulse 1s infinite',
-              display: 'inline-block',
-              flexShrink: 0,
+              width: 10, height: 10, borderRadius: '50%', background: '#da3633',
+              animation: 'spioloPulse 1s infinite', display: 'inline-block', flexShrink: 0,
             }} />
             <span style={{ color: '#da3633', fontSize: '0.9rem', fontWeight: 600 }}>
               Registrazione in corso… parla pure
@@ -314,22 +306,17 @@ export default function ComposeForm({ onSubmitted }) {
         </div>
       )}
 
-      {/* STEP: processing / summarizing */}
-      {(step === 'processing' || step === 'summarizing') && (
+      {/* processing / transcribing / summarizing */}
+      {(step === 'processing' || step === 'transcribing' || step === 'summarizing') && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
           <span style={{ fontSize: '1.1rem', display: 'inline-block', animation: 'spioloSpin 1s linear infinite' }}>⚙️</span>
-          <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>
-            {step === 'processing'
-              ? 'Censura vocale in corso…'
-              : 'Lo Spiolo sta elaborando il titolo del tuo segreto…'}
-          </span>
+          <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>{statusMsg}</span>
         </div>
       )}
 
-      {/* STEP: preview — titolo modificabile */}
+      {/* preview */}
       {step === 'preview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
           <div style={{
             background: 'rgba(88, 166, 255, 0.07)',
             border: '1px solid rgba(88, 166, 255, 0.25)',
@@ -345,16 +332,9 @@ export default function ComposeForm({ onSubmitted }) {
               maxLength={200}
               rows={2}
               style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text)',
-                fontSize: '1rem',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                lineHeight: 1.5,
-                boxSizing: 'border-box',
+                width: '100%', background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--text)', fontSize: '1rem', fontFamily: 'inherit',
+                resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box',
               }}
               placeholder="Il titolo del tuo segreto…"
             />
@@ -364,66 +344,43 @@ export default function ComposeForm({ onSubmitted }) {
           </div>
 
           <div style={{ fontSize: '0.78rem', color: 'var(--text-gray)', lineHeight: 1.4 }}>
-            🔒 Questo testo apparirà <b>censurato</b> agli altri utenti. Si rivelerà solo dopo che avranno ascoltato l'audio.
+            🔒 Questo testo apparirà <b>censurato</b> agli altri. Si rivela solo dopo l'ascolto.
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button
-              onClick={reset}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'var(--text-gray)',
-                padding: '8px 14px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-              }}
-            >
+            <button onClick={reset} style={{
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+              color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
+              cursor: 'pointer', fontSize: '0.85rem',
+            }}>
               ↩ Riregistra
             </button>
-            <select
-              className="select-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
+            <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
             </select>
-            <button
-              className="btn-primary"
-              onClick={submit}
-              disabled={!summaryEdited.trim()}
-            >
+            <button className="btn-primary" onClick={submit} disabled={!summaryEdited.trim()}>
               Spiola ora 🐦
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP: submitting */}
+      {/* submitting */}
       {step === 'submitting' && (
         <div style={{ color: 'var(--text-gray)', fontSize: '0.9rem', padding: '12px 0' }}>
           Pubblicazione in corso…
         </div>
       )}
 
-      {/* STEP: error */}
+      {/* error */}
       {step === 'error' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ color: '#da3633', fontSize: '0.85rem' }}>❌ {errorMsg}</div>
-          <button
-            onClick={reset}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
-              color: 'var(--text-gray)',
-              padding: '8px 14px',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              alignSelf: 'flex-start',
-            }}
-          >
+          <button onClick={reset} style={{
+            background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+            color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
+            cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start',
+          }}>
             ↩ Riprova
           </button>
         </div>
