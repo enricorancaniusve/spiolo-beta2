@@ -10,14 +10,23 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-mono); }
-#root { width: 100%; max-width: 600px; padding: 40px 20px; margin: 0 auto; }
 
-/* HEADER CENTRATO */
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+#root { width: 100%; max-width: 600px; padding: 40px 20px; }
+
+/* --- HEADER CENTRATO --- */
 .app-header { text-align: center; margin-bottom: 50px; }
 .page-title { font-family: var(--font-fancy); font-size: 3.5rem; margin-bottom: 10px; }
-.page-subtitle { color: var(--text-gray); font-size: 1rem; margin-bottom: 15px; font-style: italic; }
-.stats-row { font-size: 0.85rem; margin-bottom: 25px; }
+.page-subtitle { color: var(--text-gray); font-style: italic; margin-bottom: 15px; }
+.stats-row { font-size: 0.9rem; margin-bottom: 25px; color: var(--text-gray); }
 .stats-row b { color: var(--accent); }
 
 /* TASSONOMIA */
@@ -25,40 +34,71 @@ body { background-color: var(--bg-dark); color: var(--text-main); font-family: v
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-muted);
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 30px;
+  padding: 25px;
+  margin: 30px 0;
   text-align: left;
 }
-.taxonomy-title { color: var(--accent); font-family: var(--font-fancy); margin-bottom: 8px; font-weight: 600; }
+.taxonomy-title { color: var(--accent); font-family: var(--font-fancy); margin-bottom: 10px; font-weight: 600; }
 .taxonomy-text { font-size: 0.85rem; line-height: 1.6; color: var(--text-gray); }
 
-/* FILTRI CIRCOLARI */
-.tabs-row {
-  display: flex;
-  gap: 15px;
-  overflow-x: auto;
-  padding-bottom: 15px;
-  margin-bottom: 30px;
-  justify-content: flex-start;
-  scrollbar-width: none;
-}
-.tabs-row::-webkit-scrollbar { display: none; }
-
+/* --- FILTRI CIRCOLARI --- */
+.tabs-row { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; margin-bottom: 40px; justify-content: center; }
 .tab-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-muted);
   width: 70px; height: 70px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; transition: 0.2s;
+  cursor: pointer; transition: 0.2s; flex-shrink: 0;
 }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); }
-.tab-btn.active span { color: var(--bg-dark); }
-.tab-emoji { font-size: 1.4rem; }
-.tab-name { font-size: 0.6rem; text-transform: uppercase; margin-top: 2px; }
+.tab-btn.active span { color: var(--bg-dark) !important; }
+.tab-emoji { font-size: 1.5rem; }
+.tab-name { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; color: var(--text-gray); }
 
-/* MEDIA QUERIES (RESPONSIVE) */
-@media (max-width: 480px) {
-  .page-title { font-size: 2.5rem; }
-  .tab-btn { width: 60px; height: 60px; }
-  .compose-area { padding: 20px; }
+/* --- CARD CONFESSIONE --- */
+.confession-card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-muted);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.confession-text { font-size: 1.1rem; line-height: 1.6; margin: 15px 0; }
+.censored-text { color: var(--text-gray); letter-spacing: 2px; }
+
+/* --- AUDIO PLAYER (SISTEMATO) --- */
+.audio-row {
+  display: flex; align-items: center; gap: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 15px; border-radius: 12px; margin: 15px 0;
+}
+.play-btn {
+  background: var(--text-main); color: var(--bg-dark); border: none;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.audio-track { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.progress-container { height: 6px; background: var(--border-muted); border-radius: 3px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); transition: width 0.1s linear; }
+.time-display { font-size: 0.75rem; color: var(--text-gray); text-align: right; }
+
+/* --- REAZIONI CIRCOLARI --- */
+.reactions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-muted); }
+.reaction-btn {
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
+  width: 50px; height: 50px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.2s;
+}
+.reaction-btn.active { background: var(--accent); border-color: var(--accent); }
+.reaction-btn.active span { color: var(--bg-dark); }
+.emoji-icon { font-size: 1.1rem; }
+.emoji-count { font-size: 0.7rem; color: var(--text-gray); }
+
+/* --- BOTTONI --- */
+.btn-primary {
+  background: var(--text-main); color: var(--bg-dark);
+  border: none; padding: 12px 24px; border-radius: 8px;
+  font-weight: 700; cursor: pointer; font-family: var(--font-mono);
 }
