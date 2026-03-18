@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import { api } from '../api/client'
 
 const EMOJIS = ['😈', '😂', '💀', '🔥', '👀', '🤭']
 const CATEGORY_LABELS = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
 
-// Helper: Formatta i secondi in 0:00
 function formatTime(seconds) {
   if (!seconds || isNaN(seconds)) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -12,7 +11,6 @@ function formatTime(seconds) {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-// Helper: Censura il testo
 function censor(text) {
   if (!text) return "";
   return text.split(' ').map(word => '█'.repeat(Math.max(2, word.length))).join(' ')
@@ -27,7 +25,6 @@ export default function ConfessionCard({ confession }) {
   const [selectedEmoji, setSelectedEmoji] = useState(null)
   const audioRef = useRef(null)
 
-  // URL Audio Robusto
   const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
   const audioPath = (confession.audioUrl || '').replace(/^\//, '')
   const audioSrc = confession.audioUrl?.startsWith('http') ? confession.audioUrl : `${baseUrl}/${audioPath}`
@@ -62,7 +59,7 @@ export default function ConfessionCard({ confession }) {
   return (
     <article className="confession-card">
       <div className="confession-category">
-        <span className={`cat-${confession.category}`}>
+        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 'bold' }}>
           {CATEGORY_LABELS[confession.category] || confession.category}
         </span>
       </div>
@@ -74,7 +71,7 @@ export default function ConfessionCard({ confession }) {
           <span className="censored-text">{censor(confession.text)}</span>
         )}
         {!revealed && (
-          <small style={{ display: 'block', color: 'var(--text-gray)', marginTop: 8, fontSize: '0.65rem' }}>
+          <small style={{ display: 'block', color: 'var(--text-gray)', marginTop: 8, fontSize: '0.65rem', letterSpacing: '1px' }}>
             🔒 ASCOLTA PER SBLOCCARE
           </small>
         )}
