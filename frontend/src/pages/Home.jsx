@@ -24,9 +24,14 @@ export default function Home() {
     try {
       const data = await api.confessions.list(cat ? { category: cat } : {})
       setConfessions(data.confessions || [])
-      // Recupera le statistiche reali dal backend
-      const statsData = await api.stats();
-      setStats({ total: statsData.total || 0, today: statsData.today || 0 });
+      
+      // Chiamata stats con protezione anti-crash
+      try {
+        const statsData = await api.stats()
+        if (statsData) {
+          setStats({ total: statsData.total || 0, today: statsData.today || 0 })
+        }
+      } catch (err) { console.warn("Stats non disponibili") }
     } catch (e) { console.error(e) } 
     finally { setLoading(false) }
   }
@@ -40,13 +45,11 @@ export default function Home() {
         <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
         
         <div className="stats-row">
-          Spiólate totali: <b>{stats.total.toLocaleString('it-IT')}</b>. Oggi: <b>{stats.today.toLocaleString('it-IT')}</b>
+          Spiólate totali: <b>{(stats.total || 0).toLocaleString('it-IT')}</b>. Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b>
         </div>
         
         <div className="taxonomy-label">
-          <div style={{ fontFamily: 'var(--font-fancy)', color: 'var(--accent)', marginBottom: 8, fontWeight: 600 }}>
-            Spiolus paparazzus — Tassonomia del pettegolezzo
-          </div>
+          <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
           <p className="taxonomy-text">
             Lo spiolo fotografa le mucche che si tolgono il reggiseno, va a spiare i fidanzamenti dei gabbiani sulla spiaggia, guarda nei frigoriferi, apre la posta, fruga nella spazzatura, sbircia dalla serratura… e poi racconta, maligno, a un altro spiolo, nella catena infinita del pettegolezzo spiolico.
           </p>
@@ -66,15 +69,15 @@ export default function Home() {
             className={`tab-btn ${category === cat.id ? 'active' : ''}`}
             onClick={() => setCategory(cat.id)}
           >
-            <span style={{ fontSize: '1.2rem' }}>{cat.emoji}</span>
-            <span style={{ fontSize: '0.6rem', marginTop: 4, textTransform: 'uppercase' }}>{cat.name}</span>
+            <span className="tab-emoji">{cat.emoji}</span>
+            <span className="tab-name">{cat.name}</span>
           </button>
         ))}
       </nav>
 
       <div className="feed">
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Intercettando segreti...</div>
+          <div style={{ textAlign: 'center', color: 'var(--text-gray)', marginTop: 20 }}>Intercettando segreti...</div>
         ) : (
           confessions.map(c => <ConfessionCard key={c.id} confession={c} />)
         )}
