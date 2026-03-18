@@ -1,4 +1,7 @@
-// ... (tutto il resto del codice rimane uguale)
+import React, { useEffect, useState } from 'react'
+import { api } from '../api/client'
+import ConfessionCard from '../components/ConfessionCard'
+import ComposeForm from '../components/ComposeForm'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -10,16 +13,52 @@ const CAT_DATA = [
 ]
 
 export default function Home() {
-  // ... (stati e funzioni caricate precedentemente)
+  const [confessions, setConfessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [category, setCategory] = useState(null)
+  const [showCompose, setShowCompose] = useState(false)
+  const [stats, setStats] = useState({ total: 0, today: 0 })
+
+  async function load(cat) {
+    setLoading(true)
+    try {
+      const data = await api.confessions.list(cat ? { category: cat } : {})
+      setConfessions(data.confessions || [])
+      // Recupera le statistiche reali dal backend
+      const statsData = await api.stats();
+      setStats({ total: statsData.total || 0, today: statsData.today || 0 });
+    } catch (e) { console.error(e) } 
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { load(category) }, [category])
 
   return (
     <main>
-      {/* Header, Stats e Taxonomy (già fatti) */}
       <header className="app-header">
-        {/* ... (codice header precedente) */}
+        <h1 className="page-title">Lo Spiolo</h1>
+        <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
+        
+        <div className="stats-row">
+          Spiólate totali: <b>{stats.total.toLocaleString('it-IT')}</b>. Oggi: <b>{stats.today.toLocaleString('it-IT')}</b>
+        </div>
+        
+        <div className="taxonomy-label">
+          <div style={{ fontFamily: 'var(--font-fancy)', color: 'var(--accent)', marginBottom: 8, fontWeight: 600 }}>
+            Spiolus paparazzus — Tassonomia del pettegolezzo
+          </div>
+          <p className="taxonomy-text">
+            Lo spiolo fotografa le mucche che si tolgono il reggiseno, va a spiare i fidanzamenti dei gabbiani sulla spiaggia, guarda nei frigoriferi, apre la posta, fruga nella spazzatura, sbircia dalla serratura… e poi racconta, maligno, a un altro spiolo, nella catena infinita del pettegolezzo spiolico.
+          </p>
+        </div>
+
+        <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
+          {showCompose ? 'Chiudi' : '+ Spiola'}
+        </button>
       </header>
 
-      {/* Sezione Filtri a Cerchio */}
+      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); load(category); }} />}
+
       <nav className="tabs-row">
         {CAT_DATA.map(cat => (
           <button
@@ -27,13 +66,19 @@ export default function Home() {
             className={`tab-btn ${category === cat.id ? 'active' : ''}`}
             onClick={() => setCategory(cat.id)}
           >
-            <span className="tab-emoji">{cat.emoji}</span>
-            <span className="tab-name">{cat.name}</span>
+            <span style={{ fontSize: '1.2rem' }}>{cat.emoji}</span>
+            <span style={{ fontSize: '0.6rem', marginTop: 4, textTransform: 'uppercase' }}>{cat.name}</span>
           </button>
         ))}
       </nav>
 
-      {/* ... (form di invio e feed) */}
+      <div className="feed">
+        {loading ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Intercettando segreti...</div>
+        ) : (
+          confessions.map(c => <ConfessionCard key={c.id} confession={c} />)
+        )}
+      </div>
     </main>
   )
 }
