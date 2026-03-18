@@ -61,7 +61,7 @@ function audioBufferToWav(buffer) {
 
 // ─── Pitch shifting ───────────────────────────────────────────────────────────
 async function processAndAlterAudio(rawBlob) {
-  const PITCH_FACTOR = 1.3
+  const PITCH_FACTOR = 1.8
   const arrayBuffer = await rawBlob.arrayBuffer()
   const audioContext = new (window.AudioContext || window.webkitAudioContext)()
   const rawAudioBuffer = await audioContext.decodeAudioData(arrayBuffer)
