@@ -266,7 +266,7 @@ export default function ComposeForm({ onSubmitted }) {
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="compose-area">
-      <div className="compose-label">Lo Spiolo — Registra il tuo segreto 🐦</div>
+      <div className="compose-label">Lo Spiolo — Registra il tuo segreto </div>
 
       {/* idle */}
       {step === 'idle' && (
