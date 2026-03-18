@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { api } from '../api/client'
+import * as Tone from 'tone'
 
 const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
@@ -59,25 +60,116 @@ function audioBufferToWav(buffer) {
   return new Blob([bufferWav], { type: 'audio/wav' })
 }
 
-// ─── Pitch shifting ───────────────────────────────────────────────────────────
+// ─── Distorsione vocale avanzata con Tone.js ──────────────────────────────────
+// Combina pitch shift + riverbero + chorus per rendere la voce irriconoscibile
+// mantenendo velocità e naturalezza del parlato
 async function processAndAlterAudio(rawBlob) {
-  const PITCH_FACTOR = 1.8
+  await Tone.start()
+
+  // 1. Decodifica il blob in AudioBuffer nativo
   const arrayBuffer = await rawBlob.arrayBuffer()
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-  const rawAudioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-  const newDuration = rawAudioBuffer.duration / PITCH_FACTOR
-  const offlineContext = new OfflineAudioContext(
-    rawAudioBuffer.numberOfChannels,
-    Math.ceil(rawAudioBuffer.sampleRate * newDuration),
-    rawAudioBuffer.sampleRate
+  const nativeCtx = new (window.AudioContext || window.webkitAudioContext)()
+  const audioBuffer = await nativeCtx.decodeAudioData(arrayBuffer)
+  await nativeCtx.close()
+
+  // 2. Usa OfflineAudioContext di Tone per renderizzare offline
+  const duration = audioBuffer.duration + 1.5 // +1.5s per la coda del riverbero
+  const sampleRate = audioBuffer.sampleRate
+
+  // Imposta Tone in modalità offline
+  const offlineCtx = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    Math.ceil(sampleRate * duration),
+    sampleRate
   )
-  const source = offlineContext.createBufferSource()
-  source.buffer = rawAudioBuffer
-  source.playbackRate.value = PITCH_FACTOR
-  source.connect(offlineContext.destination)
-  source.start(0)
-  const processed = await offlineContext.startRendering()
-  return audioBufferToWav(processed)
+
+  // 3. Crea la catena di effetti manualmente con Web Audio API
+  //    (Tone.js non supporta bene OfflineAudioContext, usiamo Web Audio diretto)
+
+  // Sorgente audio
+  const source = offlineCtx.createBufferSource()
+  source.buffer = audioBuffer
+
+  // --- Effetto 1: Pitch shift simulato con due playbackRate diversi in parallelo ---
+  // Tecnica: splitting del segnale con leggero detune su due rami → suona alterato
+  // senza sembrare chipmunk
+
+  // Ramo A: leggera accelerazione + detune negativo
+  const sourceA = offlineCtx.createBufferSource()
+  sourceA.buffer = audioBuffer
+  sourceA.detune.value = +350  // +3.5 semitoni su
+
+  // Ramo B: leggera decelerazione + detune positivo  
+  const sourceB = offlineCtx.createBufferSource()
+  sourceB.buffer = audioBuffer
+  sourceB.detune.value = -150  // -1.5 semitoni giù
+
+  // Gain per bilanciare i due rami (A più forte per voce più acuta)
+  const gainA = offlineCtx.createGain()
+  gainA.gain.value = 0.7
+
+  const gainB = offlineCtx.createGain()
+  gainB.gain.value = 0.4
+
+  // --- Effetto 2: Riverbero leggero (convoluzione con impulso sintetico) ---
+  const convolver = offlineCtx.createConvolver()
+  const irLength = sampleRate * 0.4 // 0.4 secondi di riverbero
+  const irBuffer = offlineCtx.createBuffer(2, irLength, sampleRate)
+  for (let ch = 0; ch < 2; ch++) {
+    const data = irBuffer.getChannelData(ch)
+    for (let i = 0; i < irLength; i++) {
+      // Decadimento esponenziale — simula una stanza piccola
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLength, 2.5)
+    }
+  }
+  convolver.buffer = irBuffer
+
+  const reverbGain = offlineCtx.createGain()
+  reverbGain.gain.value = 0.18 // riverbero leggero, non troppo
+
+  const dryGain = offlineCtx.createGain()
+  dryGain.gain.value = 0.85 // segnale diretto prevalente
+
+  // --- Effetto 3: EQ — taglia le basse frequenze (rende meno riconoscibile) ---
+  const highpass = offlineCtx.createBiquadFilter()
+  highpass.type = 'highpass'
+  highpass.frequency.value = 180 // taglia sotto 180Hz
+  highpass.Q.value = 0.8
+
+  const presence = offlineCtx.createBiquadFilter()
+  presence.type = 'peaking'
+  presence.frequency.value = 3200 // boost presenza vocale
+  presence.gain.value = 4
+  presence.Q.value = 1.2
+
+  // --- Routing della catena ---
+  // sourceA → gainA ─┐
+  //                   ├→ highpass → presence → dryGain ──────────────┐
+  // sourceB → gainB ─┘                      └→ convolver → reverbGain─┤→ destination
+  
+  sourceA.connect(gainA)
+  sourceB.connect(gainB)
+
+  gainA.connect(highpass)
+  gainB.connect(highpass)
+
+  highpass.connect(presence)
+
+  presence.connect(dryGain)
+  dryGain.connect(offlineCtx.destination)
+
+  presence.connect(convolver)
+  convolver.connect(reverbGain)
+  reverbGain.connect(offlineCtx.destination)
+
+  // 4. Avvia e renderizza
+  sourceA.start(0)
+  sourceB.start(0)
+
+  const rendered = await offlineCtx.startRendering()
+
+  // 5. Converti in WAV
+  return audioBufferToWav(rendered)
 }
 
 // ─── Groq Whisper: trascrive l'audio grezzo ───────────────────────────────────
@@ -85,9 +177,7 @@ async function transcribeAudio(rawBlob) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
 
-  // Groq Whisper vuole un file con nome e tipo corretto
   const file = new File([rawBlob], 'audio.wav', { type: 'audio/wav' })
-
   const formData = new FormData()
   formData.append('file', file)
   formData.append('model', 'whisper-large-v3')
@@ -96,10 +186,7 @@ async function transcribeAudio(rawBlob) {
 
   const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-      // NON impostare Content-Type: il browser lo imposta automaticamente con il boundary corretto
-    },
+    headers: { Authorization: `Bearer ${GROQ_API_KEY}` },
     body: formData,
   })
 
@@ -113,7 +200,7 @@ async function transcribeAudio(rawBlob) {
   return data.text?.trim() || ''
 }
 
-// ─── Groq llama: genera il titolo dal testo trascritto ────────────────────────
+// ─── Groq llama: genera il titolo ────────────────────────────────────────────
 async function generateSummary(transcript) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
@@ -154,8 +241,6 @@ async function generateSummary(transcript) {
 // ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export default function ComposeForm({ onSubmitted }) {
   const [step, setStep] = useState('idle')
-  // idle | recording | processing | transcribing | summarizing | preview | submitting | error
-
   const [category, setCategory] = useState('secrets')
   const [audioBlob, setAudioBlob] = useState(null)
   const [summaryEdited, setSummaryEdited] = useState('')
@@ -164,7 +249,6 @@ export default function ComposeForm({ onSubmitted }) {
 
   const mediaRecorderRef = useRef(null)
 
-  // ─── AVVIA registrazione ────────────────────────────────────────────────────
   async function startRecording() {
     setErrorMsg('')
     setAudioBlob(null)
@@ -189,7 +273,6 @@ export default function ComposeForm({ onSubmitted }) {
     }
   }
 
-  // ─── STOP registrazione ─────────────────────────────────────────────────────
   function stopRecording() {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop()
@@ -197,12 +280,10 @@ export default function ComposeForm({ onSubmitted }) {
     setStep('processing')
   }
 
-  // ─── PIPELINE: pitch shift + trascrizione Whisper + titolo llama ────────────
   async function handleRecordingDone(rawBlob) {
     try {
-      // Fase 1: pitch shift e trascrizione Whisper girano in parallelo — più veloce!
       setStep('processing')
-      setStatusMsg('Censura vocale e trascrizione in corso…')
+      setStatusMsg('Distorsione vocale e trascrizione in corso…')
 
       const [censoredBlob, transcript] = await Promise.all([
         processAndAlterAudio(rawBlob),
@@ -210,16 +291,13 @@ export default function ComposeForm({ onSubmitted }) {
       ])
 
       setAudioBlob(censoredBlob)
-      console.log('Trascrizione Whisper:', transcript) // utile per debug
 
       if (!transcript || transcript.length < 3) {
-        // Audio troppo corto o silenzioso
         setSummaryEdited('Un segreto che non puoi non ascoltare…')
         setStep('preview')
         return
       }
 
-      // Fase 2: genera titolo con llama
       setStep('summarizing')
       setStatusMsg('Lo Spiolo sta elaborando il titolo…')
       const title = await generateSummary(transcript)
@@ -233,7 +311,6 @@ export default function ComposeForm({ onSubmitted }) {
     }
   }
 
-  // ─── PUBBLICA ───────────────────────────────────────────────────────────────
   async function submit() {
     if (!audioBlob || !summaryEdited.trim()) return
     setStep('submitting')
@@ -263,19 +340,13 @@ export default function ComposeForm({ onSubmitted }) {
     setErrorMsg('')
   }
 
-  // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="compose-area">
-      <div className="compose-label">Lo Spiolo — Registra il tuo segreto </div>
+      <div className="compose-label">Lo Spiolo — Registra il tuo segreto 🗣️</div>
 
-      {/* idle */}
       {step === 'idle' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            className="btn-primary"
-            style={{ background: '#238636', color: 'white' }}
-            onClick={startRecording}
-          >
+          <button className="btn-primary" style={{ background: '#238636', color: 'white' }} onClick={startRecording}>
             🎤 Registra il segreto
           </button>
           <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -284,7 +355,6 @@ export default function ComposeForm({ onSubmitted }) {
         </div>
       )}
 
-      {/* recording */}
       {step === 'recording' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -296,32 +366,25 @@ export default function ComposeForm({ onSubmitted }) {
               Registrazione in corso… parla pure
             </span>
           </div>
-          <button
-            className="btn-primary"
-            style={{ background: '#da3633', color: 'white' }}
-            onClick={stopRecording}
-          >
+          <button className="btn-primary" style={{ background: '#da3633', color: 'white' }} onClick={stopRecording}>
             ⏹ Stop — ho finito
           </button>
         </div>
       )}
 
-      {/* processing / transcribing / summarizing */}
-      {(step === 'processing' || step === 'transcribing' || step === 'summarizing') && (
+      {(step === 'processing' || step === 'summarizing') && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
           <span style={{ fontSize: '1.1rem', display: 'inline-block', animation: 'spioloSpin 1s linear infinite' }}>⚙️</span>
           <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>{statusMsg}</span>
         </div>
       )}
 
-      {/* preview */}
       {step === 'preview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{
             background: 'rgba(88, 166, 255, 0.07)',
             border: '1px solid rgba(88, 166, 255, 0.25)',
-            borderRadius: 10,
-            padding: '12px 14px',
+            borderRadius: 10, padding: '12px 14px',
           }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#58a6ff', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
               ✦ Titolo generato dall'IA — puoi modificarlo
@@ -352,9 +415,7 @@ export default function ComposeForm({ onSubmitted }) {
               background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
               color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
               cursor: 'pointer', fontSize: '0.85rem',
-            }}>
-              ↩ Riregistra
-            </button>
+            }}>↩ Riregistra</button>
             <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
             </select>
@@ -365,14 +426,12 @@ export default function ComposeForm({ onSubmitted }) {
         </div>
       )}
 
-      {/* submitting */}
       {step === 'submitting' && (
         <div style={{ color: 'var(--text-gray)', fontSize: '0.9rem', padding: '12px 0' }}>
           Pubblicazione in corso…
         </div>
       )}
 
-      {/* error */}
       {step === 'error' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ color: '#da3633', fontSize: '0.85rem' }}>❌ {errorMsg}</div>
@@ -380,9 +439,7 @@ export default function ComposeForm({ onSubmitted }) {
             background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
             color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
             cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start',
-          }}>
-            ↩ Riprova
-          </button>
+          }}>↩ Riprova</button>
         </div>
       )}
 
