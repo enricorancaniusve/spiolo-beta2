@@ -12,12 +12,16 @@ export default function ComposeForm({ onSubmitted }) {
   const mediaRecorderRef = useRef(null)
 
   async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const mr = new MediaRecorder(stream)
-    mediaRecorderRef.current = mr
-    mr.ondataavailable = (e) => setAudioBlob(e.data)
-    mr.start()
-    setRecording(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      mediaRecorderRef.current = mr
+      const chunks = []
+      mr.ondataavailable = (e) => chunks.push(e.data)
+      mr.onstop = () => setAudioBlob(new Blob(chunks, { type: 'audio/wav' }))
+      mr.start()
+      setRecording(true)
+    } catch (e) { alert("Attiva il microfono!") }
   }
 
   function stopRecording() {
@@ -28,43 +32,50 @@ export default function ComposeForm({ onSubmitted }) {
   async function submit() {
     if (!text && !audioBlob) return
     const fd = new FormData()
-    fd.append('text', text || 'Audio Confession')
+    fd.append('text', text || 'Confessione Audio')
     fd.append('category', category)
     if (audioBlob) fd.append('audio', audioBlob, 'confession.wav')
     
-    await api.confessions.create(fd)
-    setText('')
-    setAudioBlob(null)
-    onSubmitted?.()
+    try {
+      await api.confessions.create(fd)
+      setText('')
+      setAudioBlob(null)
+      onSubmitted?.()
+    } catch (e) { alert("Errore invio!") }
   }
 
   return (
-    {/* Classe compose-area per lo style grande e pulito */}
     <div className="compose-area">
-      {/* Label grande e pulita */}
-      <label className="compose-label">Spiola, confessa... 🐦</label>
+      <label className="compose-label">Lo Spiolo — Confessa un segreto 🐦</label>
       
-      {/* Textarea grande con più spazio */}
       <textarea 
         value={text} 
         onChange={(e) => setText(e.target.value)} 
-        placeholder="Cosa hai intercettato?" 
+        placeholder="Scrivi qui la tua verità anonima..." 
       />
       
       <div className="record-row">
-        <button className={`record-btn ${recording ? 'recording' : ''}`} onClick={recording ? stopRecording : startRecording}>
-          {recording ? '⏹ Fermati' : '🎤 Registra'}
+        <button 
+          className="btn-primary" 
+          style={{ background: recording ? '#da3633' : '#238636', color: 'white' }} 
+          onClick={recording ? stopRecording : startRecording}
+        >
+          {recording ? '⏹ Stop' : '🎤 Registra Voce'}
         </button>
-        {audioBlob && <span style={{ color: 'var(--record-red)' }}>✓ Audio pronto</span>}
         
-        <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>
-        ))}
+        {audioBlob && <span style={{ color: '#da3633', fontSize: '0.8rem' }}>✓ Audio pronto</span>}
+        
+        <select 
+          className="select-cat" 
+          value={category} 
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
         </select>
       </div>
 
-      <div style={{ textAlign: 'right' }}>
-        <button className="btn-primary" onClick={submit}>Invia Segreto</button>
+      <div style={{ textAlign: 'right', marginTop: '20px' }}>
+        <button className="btn-primary" onClick={submit}>Spiola ora</button>
       </div>
     </div>
   )
