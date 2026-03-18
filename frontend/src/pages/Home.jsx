@@ -19,27 +19,30 @@ export default function Home() {
   const [showCompose, setShowCompose] = useState(false)
   const [stats, setStats] = useState({ total: 0, today: 0 })
 
-  async function load(cat) {
-    setLoading(true)
-    try {
-      const data = await api.confessions.list(cat ? { category: cat } : {})
-      setConfessions(data.confessions || [])
-      
-      // Chiamata stats con protezione anti-crash
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchData() {
+      setLoading(true)
       try {
-        const statsData = await api.stats()
-        if (statsData) {
-          setStats({ total: statsData.total || 0, today: statsData.today || 0 })
-        }
-      } catch (err) { console.warn("Stats non disponibili") }
-    } catch (e) { console.error(e) } 
-    finally { setLoading(false) }
-  }
+        const data = await api.confessions.list(category ? { category } : {})
+        if (isMounted) setConfessions(data?.confessions || [])
 
-  useEffect(() => { load(category) }, [category])
+        try {
+          const s = await api.stats()
+          if (isMounted && s) setStats({ total: s.total || 0, today: s.today || 0 })
+        } catch (err) { console.warn("Stats non disponibili") }
+      } catch (e) {
+        console.error("Errore Home:", e)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [category])
 
   return (
-    <main>
+    <div className="home-container">
       <header className="app-header">
         <h1 className="page-title">Lo Spiolo</h1>
         <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
@@ -55,17 +58,17 @@ export default function Home() {
           </p>
         </div>
 
-        <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
+        <button className="btn-primary" onClick={() => setShowCompose(!showCompose)}>
           {showCompose ? 'Chiudi' : '+ Spiola'}
         </button>
       </header>
 
-      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); load(category); }} />}
+      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); window.location.reload(); }} />}
 
       <nav className="tabs-row">
         {CAT_DATA.map(cat => (
-          <button
-            key={String(cat.id)}
+          <button 
+            key={String(cat.id)} 
             className={`tab-btn ${category === cat.id ? 'active' : ''}`}
             onClick={() => setCategory(cat.id)}
           >
@@ -75,13 +78,16 @@ export default function Home() {
         ))}
       </nav>
 
-      <div className="feed">
+      <section className="feed">
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-gray)', marginTop: 20 }}>Intercettando segreti...</div>
+          <div style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Intercettando segreti...</div>
         ) : (
-          confessions.map(c => <ConfessionCard key={c.id} confession={c} />)
+          <>
+            {confessions.length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-gray)', padding: '40px 0' }}>Nessun segreto qui.</div>}
+            {confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
+          </>
         )}
-      </div>
-    </main>
+      </section>
+    </div>
   )
 }
