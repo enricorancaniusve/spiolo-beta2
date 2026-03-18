@@ -39,7 +39,6 @@ export default function ConfessionCard({ confession }) {
 
   const audioRef = useRef(null)
 
-  // Costruisce URL assoluto per l'audio
   const audioSrc = confession.audioUrl
     ? confession.audioUrl.startsWith('http')
       ? confession.audioUrl
@@ -74,25 +73,28 @@ export default function ConfessionCard({ confession }) {
 
   return (
     <div className="confession-card">
-      {/* Header categoria + tempo */}
-      <div className="card-header">
-        <span className="category-badge">
+
+      {/* Header: categoria + tempo */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ color: 'var(--accent)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
           {CAT_IT[confession.category] || confession.category}
         </span>
-        <span className="card-time">{timeAgo(confession.createdAt)}</span>
+        <span style={{ color: 'var(--text-gray)', fontSize: '0.75rem' }}>
+          {timeAgo(confession.createdAt)}
+        </span>
       </div>
 
       {/* Testo censurato / rivelato */}
-      <div className="card-text">
+      <div className="confession-text">
         {revealed ? (
           <span>{confession.text}</span>
         ) : (
-          <span className="censored-text" title="Ascolta per sbloccare">
-            {censorText(confession.text)}
-          </span>
-        )}
-        {!revealed && (
-          <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>
+          <>
+            <span className="censored-text">{censorText(confession.text)}</span>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-gray)', marginTop: 6, letterSpacing: 1 }}>
+              🔒 ASCOLTA PER SBLOCCARE
+            </div>
+          </>
         )}
       </div>
 
@@ -100,7 +102,7 @@ export default function ConfessionCard({ confession }) {
       {audioSrc && (
         <div className="audio-row">
           {audioError ? (
-            <div style={{ color: 'var(--record-red)', fontSize: '0.8rem', width: '100%' }}>
+            <div style={{ color: '#da3633', fontSize: '0.8rem', width: '100%' }}>
               🪦 Questo audio è stato cancellato dal server.
             </div>
           ) : (
@@ -142,11 +144,12 @@ export default function ConfessionCard({ confession }) {
             className="reaction-btn"
             onClick={() => handleReact(emoji)}
           >
-            <span>{emoji}</span>
-            <span className="reaction-count">{reactions[emoji] || 0}</span>
+            <span className="emoji-icon">{emoji}</span>
+            <span className="emoji-count">{reactions[emoji] || 0}</span>
           </button>
         ))}
       </div>
+
     </div>
   )
 }
