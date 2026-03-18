@@ -1,19 +1,29 @@
+/* --- CONFIGURAZIONE CORE --- */
 :root {
-  --bg-color: #0d1117;          /* Sfondo scuro profondo */
-  --card-bg: #161b22;           /* Sfondo delle card */
-  --text-primary: #f0f6fc;      /* Testo chiaro */
-  --text-secondary: #8b949e;    /* Testo grigio per info secondarie */
-  --border-color: #30363d;      /* Bordi sottili tra gli elementi */
-  --accent: #58a6ff;            /* Blu per link e interazioni */
-  --font-fancy: 'Fraunces', serif;
+  --bg-dark: #0d1117;          /* Sfondo profondo */
+  --card-dark: #161b22;        /* Sfondo delle cards */
+  --border-muted: #30363d;     /* Bordi sottili */
+  --text-main: #f0f6fc;        /* Testo principale */
+  --text-gray: #8b949e;        /* Testo secondario */
+  --accent-muted: #8496ae;     /* Un accento grigio-blu molto sobrio */
   --font-mono: 'DM Mono', monospace;
+  --font-fancy: 'Fraunces', serif;
+}
+
+/* Reset Globale per Pulizia */
+* {
+  box-sizing: border-color;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
+  background-color: var(--bg-dark);
+  color: var(--text-main);
   font-family: var(--font-mono);
-  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -21,83 +31,99 @@ body {
 
 #root {
   width: 100%;
-  max-width: 600px;
+  max-width: 600px; /* Centra e stringe il layout */
   padding: 40px 20px;
 }
 
+/* --- TITOLO PRINCIPALE --- */
 h1 {
   font-family: var(--font-fancy);
-  font-size: 3rem;
-  margin-bottom: 2rem;
+  font-size: 2.8rem;
   font-weight: 700;
+  margin-bottom: 3rem;
+  color: var(--text-main);
+  letter-spacing: -1.5px;
 }
 
-/* Stile della card per ogni confessione */
+/* --- LE CARTE DELLE CONFESSIONI (PULITE) --- */
 .confession-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-muted);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s, border-color 0.2s;
 }
 
 .confession-card:hover {
   transform: translateY(-2px);
+  border-color: var(--text-gray);
 }
 
-.category-tag {
-  font-size: 0.75rem;
+/* Struttura testuale della card */
+.confession-content {
+  margin-bottom: 20px;
+}
+
+.confession-tag {
+  font-size: 0.8rem;
+  color: var(--accent-muted);
   text-transform: uppercase;
-  color: var(--accent);
   letter-spacing: 1px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display: block;
 }
 
 .confession-text {
-  font-size: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
   line-height: 1.6;
-  margin: 12px 0;
+  color: var(--text-main);
 }
 
-.card-footer {
+/* Footer della card (linea sottile e metadati) */
+.confession-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-muted);
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-gray);
 }
 
-/* Stile per i bottoni reazione */
+/* --- BOTTONI REAZIONE E AZIONE --- */
 .btn-react {
   background: none;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: 6px 12px;
+  border: 1px solid var(--border-muted);
+  color: var(--text-gray);
+  padding: 6px 14px;
   border-radius: 20px;
   cursor: pointer;
   font-family: var(--font-mono);
+  font-size: 0.85rem;
   transition: all 0.2s;
 }
 
 .btn-react:hover {
-  background-color: var(--border-color);
-  color: var(--text-primary);
+  background-color: var(--border-muted);
+  color: var(--text-main);
 }
 
-/* Stile per il tasto "Confessa" principale */
-.btn-submit {
-  background-color: var(--text-primary);
-  color: var(--bg-color);
+/* Bottone "Confessa" principale */
+.btn-primary {
+  background-color: var(--text-main);
+  color: var(--bg-dark);
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-mono);
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
 }
