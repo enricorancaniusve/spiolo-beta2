@@ -4,7 +4,7 @@ import { api } from '../api/client'
 const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
 
-// ─── WAV encoder — identico a useRecorder.js originale ───────────────────────
+// ─── WAV encoder ─────────────────────────────────────────────────────────────
 function audioBufferToWav(buffer) {
   const numCh = buffer.numberOfChannels
   const sampleRate = buffer.sampleRate
@@ -38,8 +38,7 @@ function audioBufferToWav(buffer) {
   return new Blob([arrayBuffer], { type: 'audio/wav' })
 }
 
-// ─── Distorsione vocale — identica a useRecorder.js originale ─────────────────
-// rate 0.72 = voce grave ~4 semitoni sotto, irriconoscibile
+// ─── Distorsione: voce telefonica + rumore bianco (no chipmunk) ───────────────
 async function distortAudio(blob) {
   const arrayBuffer = await blob.arrayBuffer()
   const AudioCtx = window.AudioContext || window.webkitAudioContext
@@ -47,28 +46,67 @@ async function distortAudio(blob) {
   const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
   await ctx.close()
 
-  const rate = 0.72
-  const offlineCtx = new OfflineAudioContext(
-    audioBuffer.numberOfChannels,
-    Math.ceil(audioBuffer.length / rate),
-    audioBuffer.sampleRate
-  )
+  const sampleRate = audioBuffer.sampleRate
+  const length = audioBuffer.length
+  const numCh = audioBuffer.numberOfChannels
+
+  const offlineCtx = new OfflineAudioContext(numCh, length, sampleRate)
+
+  // Sorgente: voce originale a velocità normale (NO chipmunk)
   const source = offlineCtx.createBufferSource()
   source.buffer = audioBuffer
-  source.playbackRate.value = rate
-  source.connect(offlineCtx.destination)
+  source.playbackRate.value = 1.0
+
+  // Filtro passa-banda: taglia basse e alte freq → effetto "telefonico"
+  // rende la voce meno riconoscibile senza alterarne la velocità
+  const bandpass = offlineCtx.createBiquadFilter()
+  bandpass.type = 'bandpass'
+  bandpass.frequency.value = 1800
+  bandpass.Q.value = 0.6
+
+  // Gain voce
+  const voiceGain = offlineCtx.createGain()
+  voiceGain.gain.value = 0.75
+
+  // Rumore bianco sovrapposto
+  const noiseBuffer = offlineCtx.createBuffer(1, length, sampleRate)
+  const noiseData = noiseBuffer.getChannelData(0)
+  for (let i = 0; i < length; i++) {
+    noiseData[i] = (Math.random() * 2 - 1)
+  }
+  const noiseSource = offlineCtx.createBufferSource()
+  noiseSource.buffer = noiseBuffer
+
+  // Filtro sul rumore: solo alte frequenze → fruscio/sussurro
+  const noiseFilter = offlineCtx.createBiquadFilter()
+  noiseFilter.type = 'highpass'
+  noiseFilter.frequency.value = 4000
+
+  // Gain rumore: velo leggero sopra la voce
+  const noiseGain = offlineCtx.createGain()
+  noiseGain.gain.value = 0.06 // alza a 0.10 per effetto più marcato
+
+  // Routing
+  source.connect(bandpass)
+  bandpass.connect(voiceGain)
+  voiceGain.connect(offlineCtx.destination)
+
+  noiseSource.connect(noiseFilter)
+  noiseFilter.connect(noiseGain)
+  noiseGain.connect(offlineCtx.destination)
+
   source.start(0)
+  noiseSource.start(0)
 
   const rendered = await offlineCtx.startRendering()
   return audioBufferToWav(rendered)
 }
 
-// ─── Groq Whisper: trascrive l'audio GREZZO (prima della distorsione) ─────────
+// ─── Groq Whisper: trascrive l'audio grezzo ───────────────────────────────────
 async function transcribeAudio(rawBlob) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
 
-  // Manda il blob grezzo con il suo tipo originale (webm) — Whisper lo supporta
   const file = new File([rawBlob], 'audio.webm', { type: rawBlob.type || 'audio/webm' })
   const formData = new FormData()
   formData.append('file', file)
@@ -133,8 +171,6 @@ async function generateSummary(transcript) {
 // ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export default function ComposeForm({ onSubmitted }) {
   const [step, setStep] = useState('idle')
-  // idle | recording | processing | summarizing | preview | submitting | error
-
   const [category, setCategory] = useState('secrets')
   const [audioBlob, setAudioBlob] = useState(null)
   const [summaryEdited, setSummaryEdited] = useState('')
@@ -152,8 +188,6 @@ export default function ComposeForm({ onSubmitted }) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-      // Forza audio/webm esattamente come useRecorder.js originale
       const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' })
       mediaRecorderRef.current = mr
 
@@ -184,7 +218,6 @@ export default function ComposeForm({ onSubmitted }) {
       setStep('processing')
       setStatusMsg('Distorsione vocale e trascrizione in corso…')
 
-      // Distorsione e trascrizione in parallelo — più veloce
       const [censoredBlob, transcript] = await Promise.all([
         distortAudio(rawBlob),
         transcribeAudio(rawBlob),
