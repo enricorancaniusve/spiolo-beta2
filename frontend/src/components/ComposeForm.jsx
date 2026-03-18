@@ -38,7 +38,7 @@ function audioBufferToWav(buffer) {
   return new Blob([arrayBuffer], { type: 'audio/wav' })
 }
 
-// ─── Distorsione: voce telefonica + rumore bianco (no chipmunk) ───────────────
+// ─── Distorsione: voce rallentata + effetto telefonico + rumore ───────────────
 async function distortAudio(blob) {
   const arrayBuffer = await blob.arrayBuffer()
   const AudioCtx = window.AudioContext || window.webkitAudioContext
@@ -47,46 +47,45 @@ async function distortAudio(blob) {
   await ctx.close()
 
   const sampleRate = audioBuffer.sampleRate
-  const length = audioBuffer.length
   const numCh = audioBuffer.numberOfChannels
+  
+  // Rallentamento: 0.85 (15% più lento). Più basso = più lento e cupo.
+  const slowFactor = 0.85 
+  const newLength = Math.floor(audioBuffer.length / slowFactor)
+  
+  const offlineCtx = new OfflineAudioContext(numCh, newLength, sampleRate)
 
-  const offlineCtx = new OfflineAudioContext(numCh, length, sampleRate)
-
-  // Sorgente: voce originale a velocità normale (NO chipmunk)
+  // Sorgente audio con playbackRate modificato
   const source = offlineCtx.createBufferSource()
   source.buffer = audioBuffer
-  source.playbackRate.value = 1.0
+  source.playbackRate.value = slowFactor
 
-  // Filtro passa-banda: taglia basse e alte freq → effetto "telefonico"
-  // rende la voce meno riconoscibile senza alterarne la velocità
+  // Filtro passa-banda: effetto "citofono/telefono"
   const bandpass = offlineCtx.createBiquadFilter()
   bandpass.type = 'bandpass'
   bandpass.frequency.value = 1800
-  bandpass.Q.value = 0.6
+  bandpass.Q.value = 0.7
 
-  // Gain voce
   const voiceGain = offlineCtx.createGain()
-  voiceGain.gain.value = 0.75
+  voiceGain.gain.value = 0.85
 
-  // Rumore bianco sovrapposto
-  const noiseBuffer = offlineCtx.createBuffer(1, length, sampleRate)
+  // Generazione Rumore Bianco (fruscio di fondo)
+  const noiseBuffer = offlineCtx.createBuffer(1, newLength, sampleRate)
   const noiseData = noiseBuffer.getChannelData(0)
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < newLength; i++) {
     noiseData[i] = (Math.random() * 2 - 1)
   }
   const noiseSource = offlineCtx.createBufferSource()
   noiseSource.buffer = noiseBuffer
 
-  // Filtro sul rumore: solo alte frequenze → fruscio/sussurro
   const noiseFilter = offlineCtx.createBiquadFilter()
   noiseFilter.type = 'highpass'
-  noiseFilter.frequency.value = 4000
+  noiseFilter.frequency.value = 4500
 
-  // Gain rumore: velo leggero sopra la voce
   const noiseGain = offlineCtx.createGain()
-  noiseGain.gain.value = 0.06 // alza a 0.10 per effetto più marcato
+  noiseGain.gain.value = 0.05 
 
-  // Routing
+  // Collegamenti (Routing)
   source.connect(bandpass)
   bandpass.connect(voiceGain)
   voiceGain.connect(offlineCtx.destination)
@@ -102,7 +101,7 @@ async function distortAudio(blob) {
   return audioBufferToWav(rendered)
 }
 
-// ─── Groq Whisper: trascrive l'audio grezzo ───────────────────────────────────
+// ─── Groq Whisper: trascrizione ───────────────────────────────────────────────
 async function transcribeAudio(rawBlob) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
   if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
@@ -120,21 +119,14 @@ async function transcribeAudio(rawBlob) {
     body: formData,
   })
 
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Whisper error:', err)
-    throw new Error('Errore trascrizione Whisper')
-  }
-
+  if (!res.ok) throw new Error('Errore trascrizione Whisper')
   const data = await res.json()
   return data.text?.trim() || ''
 }
 
-// ─── Groq llama: genera il titolo ────────────────────────────────────────────
+// ─── Groq Llama: generazione titolo ──────────────────────────────────────────
 async function generateSummary(transcript) {
   const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
-  if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY mancante nel .env')
-
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -148,17 +140,9 @@ async function generateSummary(transcript) {
       messages: [
         {
           role: 'system',
-          content:
-            'Sei un assistente per un\'app di pettegolezzi anonimi chiamata "Lo Spiolo". ' +
-            'Ricevi la trascrizione di un messaggio vocale anonimo e devi generare un titolo ' +
-            'breve e intrigante (massimo 10 parole) che descriva il pettegolezzo senza rivelare troppo. ' +
-            'Deve essere curioso e misterioso, come l\'oggetto di una email scandalosa. ' +
-            'Rispondi SOLO con il testo del titolo, senza virgolette, senza prefissi, senza punteggiatura finale.',
+          content: 'Sei un assistente per "Lo Spiolo". Genera un titolo breve, intrigante e misterioso (max 10 parole) basato sulla trascrizione. Rispondi SOLO con il testo del titolo.',
         },
-        {
-          role: 'user',
-          content: `Trascrizione:\n"${transcript}"`,
-        },
+        { role: 'user', content: `Trascrizione: "${transcript}"` },
       ],
     }),
   })
@@ -168,7 +152,7 @@ async function generateSummary(transcript) {
   return data.choices[0].message.content.trim()
 }
 
-// ─── COMPONENTE ───────────────────────────────────────────────────────────────
+// ─── COMPONENTE EXPORT ────────────────────────────────────────────────────────
 export default function ComposeForm({ onSubmitted }) {
   const [step, setStep] = useState('idle')
   const [category, setCategory] = useState('secrets')
@@ -190,33 +174,29 @@ export default function ComposeForm({ onSubmitted }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' })
       mediaRecorderRef.current = mr
-
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
         await handleRecordingDone(rawBlob)
       }
-
       mr.start()
       setStep('recording')
     } catch (e) {
-      setErrorMsg("Impossibile accedere al microfono. Controlla i permessi.")
+      setErrorMsg("Permesso microfono negato.")
       setStep('error')
     }
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop()
-    }
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop()
     setStep('processing')
   }
 
   async function handleRecordingDone(rawBlob) {
     try {
       setStep('processing')
-      setStatusMsg('Distorsione vocale e trascrizione in corso…')
+      setStatusMsg('Lo Spiolo sta camuffando la tua voce…')
 
       const [censoredBlob, transcript] = await Promise.all([
         distortAudio(rawBlob),
@@ -226,20 +206,18 @@ export default function ComposeForm({ onSubmitted }) {
       setAudioBlob(censoredBlob)
 
       if (!transcript || transcript.length < 3) {
-        setSummaryEdited('Un segreto che non puoi non ascoltare…')
+        setSummaryEdited('Un segreto sussurrato nell\'ombra…')
         setStep('preview')
         return
       }
 
       setStep('summarizing')
-      setStatusMsg('Lo Spiolo sta elaborando il titolo…')
+      setStatusMsg('Generazione del titolo scandaloso…')
       const title = await generateSummary(transcript)
-
       setSummaryEdited(title)
       setStep('preview')
     } catch (e) {
-      console.error(e)
-      setErrorMsg(`Errore: ${e.message}. Riprova.`)
+      setErrorMsg(`Errore: ${e.message}`)
       setStep('error')
     }
   }
@@ -255,151 +233,63 @@ export default function ComposeForm({ onSubmitted }) {
 
     try {
       await api.confessions.create(fd)
-      setStep('idle')
-      setAudioBlob(null)
-      setSummaryEdited('')
       onSubmitted?.()
     } catch (e) {
-      setErrorMsg("Errore durante l'invio. Riprova.")
+      setErrorMsg("Errore invio server.")
       setStep('error')
     }
   }
 
-  function reset() {
-    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop()
-    setStep('idle')
-    setAudioBlob(null)
-    setSummaryEdited('')
-    setErrorMsg('')
-    chunksRef.current = []
-  }
+  const reset = () => { setStep('idle'); setAudioBlob(null); setSummaryEdited(''); setErrorMsg(''); }
 
   return (
     <div className="compose-area">
       <div className="compose-label">Lo Spiolo — Registra il tuo segreto 🗣️</div>
 
-      {/* idle */}
       {step === 'idle' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            className="btn-primary"
-            style={{ background: '#238636', color: 'white' }}
-            onClick={startRecording}
-          >
-            🎤 Registra il segreto
-          </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button className="btn-primary" style={{ background: '#238636' }} onClick={startRecording}>🎤 Registra</button>
           <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
             {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
           </select>
         </div>
       )}
 
-      {/* recording */}
       {step === 'recording' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              width: 10, height: 10, borderRadius: '50%', background: '#da3633',
-              animation: 'spioloPulse 1s infinite', display: 'inline-block', flexShrink: 0,
-            }} />
-            <span style={{ color: '#da3633', fontSize: '0.9rem', fontWeight: 600 }}>
-              Registrazione in corso… parla pure
-            </span>
-          </div>
-          <button
-            className="btn-primary"
-            style={{ background: '#da3633', color: 'white' }}
-            onClick={stopRecording}
-          >
-            ⏹ Stop — ho finito
-          </button>
+          <div style={{ color: '#da3633', fontWeight: 600 }}>🔴 Registrazione in corso...</div>
+          <button className="btn-primary" style={{ background: '#da3633' }} onClick={stopRecording}>⏹ Stop</button>
         </div>
       )}
 
-      {/* processing / summarizing */}
       {(step === 'processing' || step === 'summarizing') && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
-          <span style={{ fontSize: '1.1rem', display: 'inline-block', animation: 'spioloSpin 1s linear infinite' }}>⚙️</span>
-          <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>{statusMsg}</span>
-        </div>
+        <div style={{ padding: '12px 0', color: 'var(--accent)' }}>⚙️ {statusMsg}</div>
       )}
 
-      {/* preview */}
       {step === 'preview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{
-            background: 'rgba(88, 166, 255, 0.07)',
-            border: '1px solid rgba(88, 166, 255, 0.25)',
-            borderRadius: 10, padding: '12px 14px',
-          }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#58a6ff', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
-              ✦ Titolo generato dall'IA — puoi modificarlo
-            </div>
-            <textarea
-              value={summaryEdited}
-              onChange={(e) => setSummaryEdited(e.target.value)}
-              maxLength={200}
-              rows={2}
-              style={{
-                width: '100%', background: 'transparent', border: 'none', outline: 'none',
-                color: 'var(--text)', fontSize: '1rem', fontFamily: 'inherit',
-                resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box',
-              }}
-              placeholder="Il titolo del tuo segreto…"
+          <div className="preview-box" style={{ background: 'rgba(88,166,255,0.1)', padding: 12, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.7rem', color: '#58a6ff', marginBottom: 5 }}>TITOLO GENERATO</div>
+            <textarea 
+              style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', resize: 'none' }}
+              value={summaryEdited} 
+              onChange={e => setSummaryEdited(e.target.value)} 
             />
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-gray)', textAlign: 'right' }}>
-              {summaryEdited.length}/200
-            </div>
           </div>
-
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-gray)', lineHeight: 1.4 }}>
-            🔒 Questo testo apparirà <b>censurato</b> agli altri. Si rivela solo dopo l'ascolto.
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button onClick={reset} style={{
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
-              color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
-              cursor: 'pointer', fontSize: '0.85rem',
-            }}>↩ Riregistra</button>
-            <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
-            </select>
-            <button className="btn-primary" onClick={submit} disabled={!summaryEdited.trim()}>
-              Spiola ora 🗣️
-            </button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button onClick={reset} className="btn-secondary">Annulla</button>
+            <button className="btn-primary" onClick={submit}>Spiola ora 🗣️</button>
           </div>
         </div>
       )}
 
-      {/* submitting */}
-      {step === 'submitting' && (
-        <div style={{ color: 'var(--text-gray)', fontSize: '0.9rem', padding: '12px 0' }}>
-          Pubblicazione in corso…
-        </div>
-      )}
-
-      {/* error */}
       {step === 'error' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ color: '#da3633', fontSize: '0.85rem' }}>❌ {errorMsg}</div>
-          <button onClick={reset} style={{
-            background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
-            color: 'var(--text-gray)', padding: '8px 14px', borderRadius: 8,
-            cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start',
-          }}>↩ Riprova</button>
-        </div>
+        <div style={{ color: '#da3633' }}>{errorMsg} <button onClick={reset}>Riprova</button></div>
       )}
 
       <style>{`
-        @keyframes spioloPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.4); }
-        }
-        @keyframes spioloSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+        .preview-box { border: 1px solid #30363d; }
+        .btn-secondary { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
       `}</style>
     </div>
   )
