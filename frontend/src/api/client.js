@@ -28,10 +28,15 @@ export const api = {
     
     // CORRETTA: Ora usa la funzione req e gestisce i dati correttamente
     create: (data) => req('/api/confessions', { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data) 
-    }),
+  method: 'POST', 
+  headers: { 'Content-Type': 'application/json' },
+  // Assicuriamoci di mappare correttamente i dati
+  body: JSON.stringify({
+    text: data.text || data.content, // Prova entrambi nel caso il form usi 'content'
+    category: data.category || 'secrets', 
+    audio_url: data.audio_url || null
+  }) 
+}),
 
     listen: (id) => req(`/api/confessions/${id}/listen`, { method: 'POST' }),
     react: (id, emoji) => req(`/api/confessions/${id}/react`, {
