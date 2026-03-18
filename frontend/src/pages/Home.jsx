@@ -25,14 +25,14 @@ export default function Home() {
 
   return (
     <main>
-      <header style={{ marginBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
           <h1 className="page-title">Lo Spiolo</h1>
-          <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
-            {showCompose ? 'Chiudi' : '+ Confessa'}
-          </button>
+          <p className="page-subtitle">I sussurri che non dovresti sentire.</p>
         </div>
-        <p className="page-subtitle">I sussurri che non dovresti sentire.</p>
+        <button className="btn-primary" onClick={() => setShowCompose(v => !v)}>
+          {showCompose ? 'Chiudi' : '+ Confessa'}
+        </button>
       </header>
 
       {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); load(category); }} />}
@@ -49,14 +49,13 @@ export default function Home() {
         ))}
       </nav>
 
-      {loading ? (
-        <div className="loading">Intercettando segreti...</div>
-      ) : (
-        <div className="feed">
-          {confessions.length === 0 && <div className="empty-state">Nessuno sta spiando qui.</div>}
-          {confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
-        </div>
-      )}
+      <div className="feed">
+        {loading && <div style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Intercettando segreti...</div>}
+        {!loading && confessions.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-gray)' }}>Nessuno sta spiando qui.</div>
+        )}
+        {!loading && confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
+      </div>
     </main>
   )
 }
