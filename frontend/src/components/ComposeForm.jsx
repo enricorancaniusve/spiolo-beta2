@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-import { useRecorder } from '../hooks/useRecorder'
+import React, { useState, useRef } from 'react'
 import { api } from '../api/client'
 
 const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
@@ -8,94 +7,65 @@ const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Bu
 export default function ComposeForm({ onSubmitted }) {
   const [text, setText] = useState('')
   const [category, setCategory] = useState('secrets')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const { state: recState, audioBlob, audioUrl, start, stop, reset } = useRecorder()
+  const [recording, setRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const mediaRecorderRef = useRef(null)
 
-  async function handleSubmit() {
-    if (!text.trim()) return setError('Scrivi qualcosa prima!')
-    if (!audioBlob) return setError('Registra il tuo audio prima di inviare.')
-    setError('')
-    setSubmitting(true)
-    try {
-      const fd = new FormData()
-      fd.append('text', text.trim())
-      fd.append('category', category)
-      fd.append('audio', audioBlob, 'confessione.wav')
-      const result = await api.confessions.create(fd)
-      if (result.error) throw new Error(result.error)
-      setText('')
-      reset()
-      onSubmitted?.(result)
-    } catch (e) {
-      setError(e.message || 'Errore invio')
-    } finally {
-      setSubmitting(false)
-    }
+  async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const mr = new MediaRecorder(stream)
+    mediaRecorderRef.current = mr
+    mr.ondataavailable = (e) => setAudioBlob(e.data)
+    mr.start()
+    setRecording(true)
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+  }
+
+  async function submit() {
+    if (!text && !audioBlob) return
+    const fd = new FormData()
+    fd.append('text', text || 'Audio Confession')
+    fd.append('category', category)
+    if (audioBlob) fd.append('audio', audioBlob, 'confession.wav')
+    
+    await api.confessions.create(fd)
+    setText('')
+    setAudioBlob(null)
+    onSubmitted?.()
   }
 
   return (
+    {/* Classe compose-area per lo style grande e pulito */}
     <div className="compose-area">
-      <div className="compose-title">Confessa, spiolo 🐦</div>
-
-      <textarea
-        placeholder="Scrivi la tua confessione anonima…"
-        value={text}
-        onChange={e => setText(e.target.value)}
-        maxLength={1000}
+      {/* Label grande e pulita */}
+      <label className="compose-label">Spiola, confessa... 🐦</label>
+      
+      {/* Textarea grande con più spazio */}
+      <textarea 
+        value={text} 
+        onChange={(e) => setText(e.target.value)} 
+        placeholder="Cosa hai intercettato?" 
       />
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', textAlign: 'right', marginTop: 4 }}>
-        {text.length}/1000
-      </div>
-
-      {/* Record */}
+      
       <div className="record-row">
-        {recState === 'idle' && (
-          <button className="record-btn" onClick={start}>
-            <span className="record-dot" /> Registra voce
-          </button>
-        )}
-        {recState === 'recording' && (
-          <button className="record-btn recording" onClick={stop}>
-            <span className="record-dot" /> Stop registrazione
-          </button>
-        )}
-        {recState === 'processing' && (
-          <span className="record-status">⏳ Distorsione voce…</span>
-        )}
-        {recState === 'done' && (
-          <>
-            <span className="record-status record-ok">✓ Audio pronto</span>
-            <audio src={audioUrl} controls style={{ height: 28, flex: 1 }} />
-            <button
-              onClick={reset}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              ✕ rifai
-            </button>
-          </>
-        )}
-        {recState === 'error' && (
-          <span className="record-status" style={{ color: 'var(--rust)' }}>
-            ✕ Microfono non disponibile
-          </span>
-        )}
-      </div>
-
-      <div className="compose-row">
-        <select className="select-cat" value={category} onChange={e => setCategory(e.target.value)}>
-          {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
-        </select>
-        <button
-          className="btn-primary"
-          onClick={handleSubmit}
-          disabled={submitting || recState === 'recording' || recState === 'processing'}
-        >
-          {submitting ? 'Invio…' : 'Spiolaaa 🐦'}
+        <button className={`record-btn ${recording ? 'recording' : ''}`} onClick={recording ? stopRecording : startRecording}>
+          {recording ? '⏹ Fermati' : '🎤 Registra'}
         </button>
+        {audioBlob && <span style={{ color: 'var(--record-red)' }}>✓ Audio pronto</span>}
+        
+        <select className="select-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
+          {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>
+        ))}
+        </select>
       </div>
 
-      {error && <div className="error-msg">{error}</div>}
+      <div style={{ textAlign: 'right' }}>
+        <button className="btn-primary" onClick={submit}>Invia Segreto</button>
+      </div>
     </div>
   )
 }
