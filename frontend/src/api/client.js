@@ -27,16 +27,27 @@ export const api = {
     get: (id) => req(`/api/confessions/${id}`),
     
     // CORRETTA: Ora usa la funzione req e gestisce i dati correttamente
-    create: (data) => req('/api/confessions', { 
-  method: 'POST', 
-  headers: { 'Content-Type': 'application/json' },
-  // Assicuriamoci di mappare correttamente i dati
-  body: JSON.stringify({
-    text: data.text || data.content, // Prova entrambi nel caso il form usi 'content'
-    category: data.category || 'secrets', 
-    audio_url: data.audio_url || null
-  }) 
-}),
+   create: async (data) => {
+  // 1. Se i dati sono già un FormData (per l'audio), li mandiamo così come sono
+  if (data instanceof FormData) {
+    return req('/api/confessions', {
+      method: 'POST',
+      body: data 
+      // NOTA: Con FormData non devi mettere l'header Content-Type, lo fa il browser
+    });
+  }
+
+  // 2. Se è un oggetto normale, assicuriamoci che i nomi dei campi siano corretti
+  return req('/api/confessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: data.text || data.confession || data.content,
+      category: data.category || 'secrets',
+      audio_url: data.audio_url || null
+    })
+  });
+},
 
     listen: (id) => req(`/api/confessions/${id}/listen`, { method: 'POST' }),
     react: (id, emoji) => req(`/api/confessions/${id}/react`, {
