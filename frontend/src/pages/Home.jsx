@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import ComposeForm from '../components/ComposeForm'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -14,12 +13,11 @@ const CAT_DATA = [
 
 const PAGE_SIZE = 10
 
-export default function Home() {
+export default function Home({ showCompose, setShowCompose }) {
   const [confessions, setConfessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [category, setCategory] = useState(null)
-  const [showCompose, setShowCompose] = useState(false)
   const [stats, setStats] = useState({ total: 0, today: 0 })
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -55,12 +53,6 @@ export default function Home() {
     fetchData()
     return () => { isMounted = false }
   }, [category])
-
-  // Blocca scroll body quando modal aperto
-  useEffect(() => {
-    document.body.style.overflow = showCompose ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [showCompose])
 
   async function loadMore() {
     if (loadingMore || !hasMore) return
@@ -129,11 +121,7 @@ export default function Home() {
             ))}
             {hasMore && !loading && (
               <div style={{ textAlign: 'center', padding: '20px 0 40px' }}>
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="load-more-btn"
-                >
+                <button onClick={loadMore} disabled={loadingMore} className="load-more-btn">
                   {loadingMore ? 'Caricamento…' : 'Carica altri segreti'}
                 </button>
               </div>
@@ -141,23 +129,6 @@ export default function Home() {
           </>
         )}
       </section>
-
-      {/* FAB */}
-      <div className="fab-container">
-        <button className="fab-btn" onClick={() => setShowCompose(true)}>
-          🗣️ Spiola
-        </button>
-      </div>
-
-      {/* Modal compose */}
-      {showCompose && (
-        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCompose(false) }}>
-          <div className="modal-box">
-            <button className="modal-close" onClick={() => setShowCompose(false)}>✕</button>
-            <ComposeForm onSubmitted={() => { setShowCompose(false); window.location.reload() }} />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
