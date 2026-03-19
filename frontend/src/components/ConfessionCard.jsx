@@ -24,18 +24,15 @@ function censorText(text) {
   return text.split(' ').map(word => '█'.repeat(Math.max(2, word.length))).join(' ')
 }
 
-// ─── localStorage helpers per reazione unica ─────────────────────────────────
-function getSavedReaction(confessionId) {
-  try { return localStorage.getItem(`reaction_${confessionId}`) || null }
-  catch { return null }
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+function getSavedReaction(id) {
+  try { return localStorage.getItem(`reaction_${id}`) || null } catch { return null }
 }
-function saveReaction(confessionId, emoji) {
-  try { localStorage.setItem(`reaction_${confessionId}`, emoji) }
-  catch {}
+function saveReaction(id, emoji) {
+  try { localStorage.setItem(`reaction_${id}`, emoji) } catch {}
 }
-function clearReaction(confessionId) {
-  try { localStorage.removeItem(`reaction_${confessionId}`) }
-  catch {}
+function clearReaction(id) {
+  try { localStorage.removeItem(`reaction_${id}`) } catch {}
 }
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -74,7 +71,6 @@ function WhisperVisualizer({ analyser, isPlaying }) {
       const maxAmp = isPlaying ? Math.max(2, smoothVolume * H * 2.8) : 1.5
       const points = 200
 
-      // Onda principale
       ctx.beginPath()
       for (let i = 0; i <= points; i++) {
         const x = (i / points) * W
@@ -94,7 +90,6 @@ function WhisperVisualizer({ analyser, isPlaying }) {
       ctx.lineWidth = isPlaying ? 1.2 + smoothVolume * 1.5 : 0.8
       ctx.stroke()
 
-      // Onda fantasma
       if (isPlaying) {
         ctx.beginPath()
         for (let i = 0; i <= points; i++) {
@@ -136,9 +131,8 @@ export default function ConfessionCard({ confession }) {
   const [reactions, setReactions] = useState(confession.reactions || {})
   const [audioError, setAudioError] = useState(false)
   const [analyser, setAnalyser] = useState(null)
-
-  // Reazione attiva dell'utente (da localStorage)
   const [myReaction, setMyReaction] = useState(() => getSavedReaction(confession.id))
+  const [reacting, setReacting] = useState(false) // blocca doppi click
 
   const audioRef = useRef(null)
   const audioCtxRef = useRef(null)
@@ -182,35 +176,42 @@ export default function ConfessionCard({ confession }) {
     }
   }
 
-  // ─── Reazione unica: un solo emoji per utente, cambiabile ─────────────────
   async function handleReact(emoji) {
+    if (reacting) return // evita doppi click
+    setReacting(true)
+
     try {
       if (myReaction === emoji) {
-        // Stesso emoji → rimuovi (toggle off) — non abbiamo API di remove,
-        // quindi semplicemente deseleziona localmente senza chiamare il server
-        setMyReaction(null)
-        clearReaction(confession.id)
-        // Decrementa localmente
-        setReactions(prev => ({
-          ...prev,
-          [emoji]: Math.max(0, (prev[emoji] || 1) - 1),
-        }))
-        return
+        // Stesso emoji → rimuovi
+        const res = await fetch(`${BASE}/api/confessions/${confession.id}/react`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setReactions(data.reactions)
+          setMyReaction(null)
+          clearReaction(confession.id)
+        }
+      } else {
+        // Nuova reazione o cambio — manda previousEmoji al backend
+        const res = await fetch(`${BASE}/api/confessions/${confession.id}/react`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji, previousEmoji: myReaction || undefined }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setReactions(data.reactions)
+          setMyReaction(emoji)
+          saveReaction(confession.id, emoji)
+        }
       }
-
-      // Emoji diverso — prima rimuovi il precedente localmente
-      const prev = myReaction
-      if (prev) {
-        setReactions(r => ({ ...r, [prev]: Math.max(0, (r[prev] || 1) - 1) }))
-      }
-
-      // Poi aggiungi il nuovo
-      const data = await api.confessions.react(confession.id, emoji)
-      setReactions(data.reactions)
-      setMyReaction(emoji)
-      saveReaction(confession.id, emoji)
     } catch (e) {
       console.error('Errore reaction:', e)
+    } finally {
+      setReacting(false)
     }
   }
 
@@ -220,7 +221,6 @@ export default function ConfessionCard({ confession }) {
 
   return (
     <div className="confession-card">
-      {/* Header */}
       <div className="card-header">
         <span className="category-badge">
           {CAT_IT[confession.category] || confession.category}
@@ -228,7 +228,6 @@ export default function ConfessionCard({ confession }) {
         <span className="card-time">{timeAgo(confession.createdAt)}</span>
       </div>
 
-      {/* Testo */}
       <div className="card-text">
         {revealed ? (
           <span>{confession.text}</span>
@@ -240,7 +239,6 @@ export default function ConfessionCard({ confession }) {
         {!revealed && <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>}
       </div>
 
-      {/* Player */}
       {audioSrc && (
         <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
           {audioError ? (
@@ -282,14 +280,13 @@ export default function ConfessionCard({ confession }) {
         </div>
       )}
 
-      {/* Reactions */}
       <div className="reactions-row">
         {EMOJIS.map(emoji => (
           <button
             key={emoji}
             className={`reaction-btn${myReaction === emoji ? ' active' : ''}`}
             onClick={() => handleReact(emoji)}
-            title={myReaction === emoji ? 'Clicca per rimuovere' : ''}
+            disabled={reacting}
           >
             <span className="emoji-icon">{emoji}</span>
             <span className="reaction-count">{reactions[emoji] || 0}</span>
