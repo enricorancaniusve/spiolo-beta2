@@ -247,10 +247,11 @@ export default function ConfessionCard({ confession }) {
             </div>
           ) : (
             <>
-              <audio
-                ref={audioRef}
-                src={audioSrc}
-                onLoadedMetadata={handleMetadata}
+             <audio
+  ref={audioRef}
+  src={audioSrc}
+  crossOrigin="anonymous"
+  onLoadedMetadata={handleMetadata}
                 onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
                 onEnded={() => {
                   setPlaying(false)
