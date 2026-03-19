@@ -29,7 +29,7 @@ export default function Home() {
 
         try {
           const s = await api.stats()
-          if (isMounted && s) setStats({ total: s.total || 0, today: s.today || 0 })
+          if (isMounted && s) setStats({ total: s.confessions_posted || 0, today: s.today || 0 })
         } catch (err) { console.warn("Stats non disponibili") }
       } catch (e) {
         console.error("Errore Home:", e)
