@@ -11,6 +11,11 @@ export default function SpiolaDetail() {
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
+  document.title = 'Lo Spiolo'
+  return () => { document.title = 'Lo Spiolo — Spiolus Paparazzus' }
+}, [])
+  
+  useEffect(() => {
     async function load() {
       try {
         const data = await api.confessions.get(id)
