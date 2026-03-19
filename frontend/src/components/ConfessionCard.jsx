@@ -24,6 +24,20 @@ function censorText(text) {
   return text.split(' ').map(word => '█'.repeat(Math.max(2, word.length))).join(' ')
 }
 
+// ─── localStorage helpers per reazione unica ─────────────────────────────────
+function getSavedReaction(confessionId) {
+  try { return localStorage.getItem(`reaction_${confessionId}`) || null }
+  catch { return null }
+}
+function saveReaction(confessionId, emoji) {
+  try { localStorage.setItem(`reaction_${confessionId}`, emoji) }
+  catch {}
+}
+function clearReaction(confessionId) {
+  try { localStorage.removeItem(`reaction_${confessionId}`) }
+  catch {}
+}
+
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 // ─── Visualizzatore Sussurro ──────────────────────────────────────────────────
@@ -37,21 +51,13 @@ function WhisperVisualizer({ analyser, isPlaying }) {
     const ctx = canvas.getContext('2d')
     const W = canvas.width
     const H = canvas.height
-
     const dataArray = analyser ? new Uint8Array(analyser.fftSize) : null
-
-    // Volume smoothed — evita salti bruschi
     let smoothVolume = 0
 
     function draw() {
       animRef.current = requestAnimationFrame(draw)
+      if (analyser && isPlaying && dataArray) analyser.getByteTimeDomainData(dataArray)
 
-      // Leggi dati waveform
-      if (analyser && isPlaying && dataArray) {
-        analyser.getByteTimeDomainData(dataArray)
-      }
-
-      // Calcola volume RMS corrente
       let rms = 0
       if (dataArray && isPlaying) {
         for (let i = 0; i < dataArray.length; i++) {
@@ -60,38 +66,27 @@ function WhisperVisualizer({ analyser, isPlaying }) {
         }
         rms = Math.sqrt(rms / dataArray.length)
       }
-
-      // Smooth del volume — la risposta è lenta, come un sussurro
       smoothVolume += (rms - smoothVolume) * 0.08
 
-      // Sfondo — pulisci completamente ogni frame
       ctx.fillStyle = 'rgb(11, 11, 15)'
       ctx.fillRect(0, 0, W, H)
 
-      // Ampiezza massima dell'onda — quasi piatta a riposo, si alza col volume
-      // Min: 2px (piatta), Max: H/2 * 0.75 (mai esagerata)
-      const maxAmp = isPlaying
-        ? Math.max(2, smoothVolume * H * 2.8)
-        : 1.5
+      const maxAmp = isPlaying ? Math.max(2, smoothVolume * H * 2.8) : 1.5
+      const points = 200
 
-      const points = 200 // punti della curva
-
-      // Onda principale — bianco pallido
+      // Onda principale
       ctx.beginPath()
       for (let i = 0; i <= points; i++) {
         const x = (i / points) * W
         let y = H / 2
-
         if (dataArray && isPlaying && dataArray.length > 0) {
           const idx = Math.floor((i / points) * dataArray.length)
           const raw = (dataArray[idx] - 128) / 128
           y = H / 2 + raw * maxAmp
         } else {
-          // Idle: onda sinusoidale quasi piatta e lentissima
           const t = Date.now() / 4000
           y = H / 2 + Math.sin(i * 0.08 + t) * 1.5
         }
-
         if (i === 0) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
       }
@@ -99,20 +94,17 @@ function WhisperVisualizer({ analyser, isPlaying }) {
       ctx.lineWidth = isPlaying ? 1.2 + smoothVolume * 1.5 : 0.8
       ctx.stroke()
 
-      // Onda fantasma — più sottile, leggermente sfasata, crea profondità
+      // Onda fantasma
       if (isPlaying) {
         ctx.beginPath()
         for (let i = 0; i <= points; i++) {
           const x = (i / points) * W
           let y = H / 2
-
           if (dataArray && dataArray.length > 0) {
             const idx = Math.floor((i / points) * dataArray.length)
             const raw = (dataArray[idx] - 128) / 128
-            // Leggermente sfasata verticalmente
             y = H / 2 + raw * maxAmp * 0.6 + 1.5
           }
-
           if (i === 0) ctx.moveTo(x, y)
           else ctx.lineTo(x, y)
         }
@@ -120,37 +112,17 @@ function WhisperVisualizer({ analyser, isPlaying }) {
         ctx.lineWidth = 0.6
         ctx.stroke()
       }
-
-      // Glow sottile al centro quando parla
-      if (isPlaying && smoothVolume > 0.02) {
-        const glow = ctx.createLinearGradient(0, 0, 0, H)
-        glow.addColorStop(0, 'rgba(0,0,0,0)')
-        glow.addColorStop(0.5, `rgba(200, 200, 230, ${smoothVolume * 0.04})`)
-        glow.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = glow
-        ctx.fillRect(0, 0, W, H)
-      }
     }
 
-    // Pulisci al primo render
     ctx.fillStyle = 'rgb(11, 11, 15)'
     ctx.fillRect(0, 0, W, H)
-
     draw()
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
   }, [analyser, isPlaying])
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={560}
-      height={60}
-      style={{
-        width: '100%',
-        height: 60,
-        borderRadius: 8,
-        display: 'block',
-      }}
+    <canvas ref={canvasRef} width={560} height={60}
+      style={{ width: '100%', height: 60, borderRadius: 8, display: 'block' }}
     />
   )
 }
@@ -164,6 +136,9 @@ export default function ConfessionCard({ confession }) {
   const [reactions, setReactions] = useState(confession.reactions || {})
   const [audioError, setAudioError] = useState(false)
   const [analyser, setAnalyser] = useState(null)
+
+  // Reazione attiva dell'utente (da localStorage)
+  const [myReaction, setMyReaction] = useState(() => getSavedReaction(confession.id))
 
   const audioRef = useRef(null)
   const audioCtxRef = useRef(null)
@@ -185,15 +160,12 @@ export default function ConfessionCard({ confession }) {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     const ctx = new AudioCtx()
     audioCtxRef.current = ctx
-
     const analyserNode = ctx.createAnalyser()
     analyserNode.fftSize = 1024
-    analyserNode.smoothingTimeConstant = 0.9 // molto smooth — risposta lenta, stile sussurro
-
+    analyserNode.smoothingTimeConstant = 0.9
     const source = ctx.createMediaElementSource(audioRef.current)
     source.connect(analyserNode)
     analyserNode.connect(ctx.destination)
-
     setAnalyser(analyserNode)
   }
 
@@ -210,10 +182,33 @@ export default function ConfessionCard({ confession }) {
     }
   }
 
+  // ─── Reazione unica: un solo emoji per utente, cambiabile ─────────────────
   async function handleReact(emoji) {
     try {
+      if (myReaction === emoji) {
+        // Stesso emoji → rimuovi (toggle off) — non abbiamo API di remove,
+        // quindi semplicemente deseleziona localmente senza chiamare il server
+        setMyReaction(null)
+        clearReaction(confession.id)
+        // Decrementa localmente
+        setReactions(prev => ({
+          ...prev,
+          [emoji]: Math.max(0, (prev[emoji] || 1) - 1),
+        }))
+        return
+      }
+
+      // Emoji diverso — prima rimuovi il precedente localmente
+      const prev = myReaction
+      if (prev) {
+        setReactions(r => ({ ...r, [prev]: Math.max(0, (r[prev] || 1) - 1) }))
+      }
+
+      // Poi aggiungi il nuovo
       const data = await api.confessions.react(confession.id, emoji)
       setReactions(data.reactions)
+      setMyReaction(emoji)
+      saveReaction(confession.id, emoji)
     } catch (e) {
       console.error('Errore reaction:', e)
     }
@@ -233,7 +228,7 @@ export default function ConfessionCard({ confession }) {
         <span className="card-time">{timeAgo(confession.createdAt)}</span>
       </div>
 
-      {/* Testo censurato / rivelato */}
+      {/* Testo */}
       <div className="card-text">
         {revealed ? (
           <span>{confession.text}</span>
@@ -242,12 +237,10 @@ export default function ConfessionCard({ confession }) {
             {censorText(confession.text)}
           </span>
         )}
-        {!revealed && (
-          <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>
-        )}
+        {!revealed && <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>}
       </div>
 
-      {/* Player con visualizzatore sussurro */}
+      {/* Player */}
       {audioSrc && (
         <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
           {audioError ? (
@@ -270,11 +263,7 @@ export default function ConfessionCard({ confession }) {
                 onError={() => setAudioError(true)}
                 preload="metadata"
               />
-
-              {/* Visualizzatore sussurro */}
               <WhisperVisualizer analyser={analyser} isPlaying={playing} />
-
-              {/* Controlli */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button className="play-btn" onClick={togglePlay}>
                   {playing ? '⏸' : '▶'}
@@ -296,8 +285,13 @@ export default function ConfessionCard({ confession }) {
       {/* Reactions */}
       <div className="reactions-row">
         {EMOJIS.map(emoji => (
-          <button key={emoji} className="reaction-btn" onClick={() => handleReact(emoji)}>
-            <span>{emoji}</span>
+          <button
+            key={emoji}
+            className={`reaction-btn${myReaction === emoji ? ' active' : ''}`}
+            onClick={() => handleReact(emoji)}
+            title={myReaction === emoji ? 'Clicca per rimuovere' : ''}
+          >
+            <span className="emoji-icon">{emoji}</span>
             <span className="reaction-count">{reactions[emoji] || 0}</span>
           </button>
         ))}
