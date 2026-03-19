@@ -65,15 +65,25 @@ button.btn-primary:hover { transform: translateY(-2px); background: #fff; }
 .fab-container {
   position: fixed;
   bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
   z-index: 1000;
+  pointer-events: none;
 }
 .fab-btn {
-  background: var(--text-main); color: var(--bg-dark);
-  border: none; padding: 16px 40px; border-radius: 50px;
-  font-weight: 800; cursor: pointer; font-family: var(--font-mono);
-  font-size: 1.05rem; letter-spacing: 0.3px;
+  pointer-events: all;
+  background: var(--text-main);
+  color: var(--bg-dark);
+  border: none;
+  padding: 16px 40px;
+  border-radius: 50px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.3px;
   box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
   transition: transform 0.2s, box-shadow 0.2s;
   white-space: nowrap;
