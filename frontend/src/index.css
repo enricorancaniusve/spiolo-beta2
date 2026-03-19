@@ -5,7 +5,6 @@ html, body {
   margin: 0;
   padding: 0;
 }
-
 :root {
   --bg-dark: #0d1117;
   --card-dark: #161b22;
@@ -16,7 +15,6 @@ html, body {
   --font-mono: 'DM Mono', monospace;
   --font-fancy: 'Fraunces', serif;
 }
-
 body {
   font-family: var(--font-mono);
   display: flex;
@@ -24,7 +22,6 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
-
 #root { width: 100%; max-width: 600px; padding: 40px 20px; }
 
 /* --- NAVIGAZIONE SUPERIORE --- */
@@ -115,8 +112,58 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
   background-color: var(--card-dark); border: 1px solid var(--border-muted);
   border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
+
+/* Header card: categoria a sinistra, timestamp a destra */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+/* Badge categoria — distinto, colorato, separato dal testo */
+.category-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+}
+
+/* Timestamp — piccolo, grigio, a destra */
+.card-time {
+  font-size: 0.7rem;
+  color: var(--text-gray);
+  opacity: 0.6;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* Testo della card */
+.card-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 4px;
+  color: var(--text-main);
+}
+
 .confession-text { font-size: 1.1rem; line-height: 1.6; margin: 15px 0; }
 .censored-text { color: var(--text-gray); letter-spacing: 2px; }
+
+/* Hint ascolta per sbloccare */
+.unlock-hint {
+  font-size: 0.65rem;
+  color: var(--text-gray);
+  opacity: 0.5;
+  letter-spacing: 1px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+}
 
 /* --- PLAYER AUDIO --- */
 .audio-row {
@@ -134,17 +181,29 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 .time-display { font-size: 0.75rem; color: var(--text-gray); text-align: right; font-family: var(--font-mono); }
 
 /* --- REAZIONI CIRCOLARI --- */
-.reactions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-muted); }
+.reactions-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;
+  padding-top: 20px; border-top: 1px solid var(--border-muted);
+}
 .reaction-btn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
   width: 50px; height: 50px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; transition: 0.2s;
 }
+.reaction-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--text-gray); }
 .reaction-btn.active { background: var(--accent); border-color: var(--accent); }
 .reaction-btn.active span { color: var(--bg-dark) !important; font-weight: 700; }
 .emoji-icon { font-size: 1.2rem; }
-.emoji-count { font-size: 0.7rem; color: var(--text-gray); margin-top: 2px; }
+
+/* Contatore reazioni — bianco/grigio chiaro, leggibile su sfondo scuro */
+.reaction-count {
+  font-size: 0.65rem;
+  color: var(--text-gray);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
 
 /* --- MOBILE RESPONSIVE --- */
 @media (max-width: 480px) {
