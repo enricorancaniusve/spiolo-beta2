@@ -1,9 +1,11 @@
-/* RESET TOTALE */
+/* RESET E STILI BASE */
 html, body {
   background-color: #0d1117 !important;
   color: #f0f6fc !important;
   margin: 0;
   padding: 0;
+  font-family: 'DM Mono', monospace;
+  -webkit-font-smoothing: antialiased;
 }
 
 :root {
@@ -13,46 +15,12 @@ html, body {
   --text-main: #f0f6fc;
   --text-gray: #8b949e;
   --accent: #58a6ff;
-  --font-mono: 'DM Mono', monospace;
   --font-fancy: 'Fraunces', serif;
 }
 
-body {
-  font-family: var(--font-mono);
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
+#root { width: 100%; max-width: 600px; margin: 0 auto; padding: 40px 20px; }
 
-#root { width: 100%; max-width: 600px; padding: 40px 20px; }
-
-/* --- NAVIGAZIONE SUPERIORE --- */
-nav.main-nav {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin-bottom: 40px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-muted);
-}
-nav.main-nav a {
-  color: var(--text-gray);
-  text-decoration: none;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  transition: color 0.2s;
-}
-nav.main-nav a:hover, nav.main-nav a.active { color: var(--text-main); }
-nav.main-nav a.active::after {
-  content: ''; position: absolute; bottom: -10px; left: 50%;
-  transform: translateX(-50%); width: 4px; height: 4px;
-  background-color: var(--accent); border-radius: 50%;
-}
-
-/* --- HEADER CENTRATO --- */
+/* HEADER */
 .app-header { text-align: center; margin-bottom: 50px; }
 .page-title { font-family: var(--font-fancy); font-size: 3.5rem; margin-bottom: 10px; color: var(--text-main); letter-spacing: -1px; }
 .page-subtitle { color: var(--text-gray); font-style: italic; margin-bottom: 15px; font-size: 0.95rem; }
@@ -67,16 +35,16 @@ nav.main-nav a.active::after {
 .taxonomy-title { color: var(--accent); font-family: var(--font-fancy); margin-bottom: 10px; font-size: 1.1rem; }
 .taxonomy-text { font-size: 0.85rem; line-height: 1.6; color: var(--text-gray); }
 
-/* --- BOTTONI PRINCIPALI --- */
+/* BOTTONI */
 button.btn-primary {
   background: var(--text-main); color: var(--bg-dark); border: none;
   padding: 12px 24px; border-radius: 8px; font-weight: 700;
-  cursor: pointer; font-family: var(--font-mono); font-size: 1rem;
-  transition: transform 0.2s, background 0.2s;
+  cursor: pointer; font-family: inherit; font-size: 1rem;
+  transition: transform 0.2s;
 }
-button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
+button.btn-primary:hover { transform: translateY(-2px); }
 
-/* --- AREA DI INVIO (COMPOSE FORM) --- */
+/* AREA DI INVIO */
 .compose-area {
   background: var(--card-dark); border: 1px solid var(--border-muted);
   border-radius: 16px; padding: 25px; margin-bottom: 40px;
@@ -85,57 +53,46 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 .compose-label { font-family: var(--font-fancy); font-size: 1.4rem; color: var(--text-main); margin-bottom: 5px; }
 .compose-area textarea {
   width: 100%; background: var(--bg-dark); border: 1px solid var(--border-muted);
-  color: var(--text-main); border-radius: 10px; padding: 15px;
-  font-family: var(--font-mono); font-size: 1rem; resize: vertical; min-height: 100px;
+  color: var(--text-main); border-radius: 10px; padding: 15px; font-family: inherit; resize: none;
 }
 
-/* --- FILTRI CIRCOLARI --- */
-.tabs-row { display: flex; gap: 15px; justify-content: flex-start; margin-bottom: 40px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
-.tabs-row::-webkit-scrollbar { display: none; }
+/* FILTRI */
+.tabs-row { display: flex; gap: 15px; margin-bottom: 40px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
 .tab-btn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
   width: 70px; height: 70px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: 0.2s;
 }
-.tab-btn.active { background: var(--accent); border-color: var(--accent); }
-.tab-btn.active .tab-name, .tab-btn.active .tab-emoji { color: var(--bg-dark) !important; font-weight: 700; }
-.tab-emoji { font-size: 1.5rem; margin-bottom: 2px; }
+.tab-btn.active { background: var(--accent); }
+.tab-btn.active span { color: var(--bg-dark); }
+.tab-emoji { font-size: 1.5rem; }
 .tab-name { font-size: 0.6rem; text-transform: uppercase; color: var(--text-gray); }
 
-/* --- CARD CONFESSIONE --- */
+/* CARD CONFESSIONE */
 .confession-card {
   background-color: var(--card-dark); border: 1px solid var(--border-muted);
-  border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border-radius: 16px; padding: 24px; margin-bottom: 24px;
 }
 .card-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.75rem; }
-.category-badge { color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+.category-badge { color: var(--accent); text-transform: uppercase; }
 .card-text { font-size: 1.1rem; line-height: 1.6; margin: 15px 0; }
 .censored-text { color: var(--text-gray); letter-spacing: 2px; }
+.unlock-hint { font-size: 0.7rem; color: var(--accent); margin-top: 10px; font-weight: bold; }
 
-/* --- PLAYER AUDIO --- */
+/* PLAYER AUDIO */
 .audio-row { background: rgba(255, 255, 255, 0.03); padding: 12px 16px; border-radius: 12px; margin: 15px 0; }
-.play-btn {
-  background: var(--text-main); color: var(--bg-dark); border: none;
-  width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-size: 14px;
-}
-.progress-container { height: 6px; background: var(--border-muted); border-radius: 3px; position: relative; overflow: hidden; margin: 10px 0; }
-.progress-bar { height: 100%; background: var(--accent); position: absolute; left: 0; top: 0; }
+.progress-container { height: 6px; background: var(--border-muted); border-radius: 3px; position: relative; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); position: absolute; }
+.play-btn { background: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
 .time-display { font-size: 0.75rem; color: var(--text-gray); text-align: right; }
 
-/* --- REAZIONI --- */
-.reactions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-muted); }
+/* REAZIONI */
+.reactions-row { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-muted); }
 .reaction-btn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
   width: 50px; height: 50px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; transition: 0.2s;
+  cursor: pointer;
 }
 .reaction-count { font-size: 0.7rem; color: var(--text-gray); }
-
-/* MOBILE */
-@media (max-width: 480px) {
-  .page-title { font-size: 2.5rem; }
-  .tab-btn { width: 60px; height: 60px; }
-}
