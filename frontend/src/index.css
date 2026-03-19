@@ -19,7 +19,7 @@ body {
   display: flex; justify-content: center;
   min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
-#root { width: 100%; max-width: 600px; padding: 40px 20px; }
+#root { width: 100%; max-width: 600px; padding: 40px 20px; position: relative; }
 
 /* --- NAV --- */
 nav.main-nav {
@@ -63,8 +63,11 @@ button.btn-primary:hover { transform: translateY(-2px); background: #fff; }
 
 /* --- FAB --- */
 .fab-container {
-  position: fixed; bottom: 32px; left: 50%;
-  transform: translateX(-50%); z-index: 100;
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 .fab-btn {
   background: var(--text-main); color: var(--bg-dark);
