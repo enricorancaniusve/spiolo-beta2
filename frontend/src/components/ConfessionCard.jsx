@@ -1,252 +1,234 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import { api } from '../api/client'
 
+const CATS = ['love', 'school', 'secrets', 'funny', 'drama']
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
-const EMOJIS = ['😈', '😂', '💀', '🔥', '💬', '😮']
 
-function formatTime(s) {
-  if (!s || isNaN(s)) return '0:00'
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
-  return `${m}:${sec.toString().padStart(2, '0')}`
-}
-
-function timeAgo(dateStr) {
-  const diff = (Date.now() - new Date(dateStr)) / 1000
-  if (diff < 60) return 'ora'
-  if (diff < 3600) return `${Math.floor(diff / 60)}min fa`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h fa`
-  return `${Math.floor(diff / 86400)}g fa`
-}
-
-function censorText(text) {
-  if (!text) return ''
-  return text.split(' ').map(word => '█'.repeat(Math.max(2, word.length))).join(' ')
-}
-
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
-// ─── Visualizzatore Nebbia ────────────────────────────────────────────────────
-const PARTICLE_COUNT = 90
-
-function FogVisualizer({ analyser, isPlaying }) {
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
-  const particlesRef = useRef([])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const W = canvas.width
-    const H = canvas.height
-
-    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      baseY: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.2,
-      radius: Math.random() * 2 + 0.5,
-      opacity: Math.random() * 0.4 + 0.1,
-      phase: Math.random() * Math.PI * 2,
-    }))
-  }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const W = canvas.width
-    const H = canvas.height
-    const dataArray = analyser ? new Uint8Array(analyser.frequencyBinCount) : null
-
-    let frame = 0
-
-    function draw() {
-      animRef.current = requestAnimationFrame(draw)
-      frame++
-
-      let volume = 0
-      if (analyser && isPlaying && dataArray) {
-        analyser.getByteFrequencyData(dataArray)
-        const sum = dataArray.reduce((a, b) => a + b, 0)
-        volume = Math.min(1, (sum / dataArray.length) / 80)
-      }
-
-      ctx.fillStyle = 'rgba(13, 13, 18, 0.18)'
-      ctx.fillRect(0, 0, W, H)
-
-      const particles = particlesRef.current
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i]
-        const agitation = isPlaying ? volume * 3.5 : 0.3
-        p.x += p.vx + Math.sin(frame * 0.01 + p.phase) * agitation * 0.4
-        p.y += p.vy + Math.cos(frame * 0.013 + p.phase) * agitation * 0.3
-
-        if (p.x < -5) p.x = W + 5
-        if (p.x > W + 5) p.x = -5
-        if (p.y < -5) p.y = H + 5
-        if (p.y > H + 5) p.y = -5
-
-        const pulseOpacity = p.opacity + (isPlaying ? volume * 0.5 : 0)
-        const finalRadius = p.radius + (isPlaying ? volume * 2.5 : 0)
-
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, finalRadius * 3)
-        gradient.addColorStop(0, `rgba(200, 200, 220, ${Math.min(0.9, pulseOpacity * 1.5)})`)
-        gradient.addColorStop(0.4, `rgba(160, 160, 190, ${pulseOpacity * 0.6})`)
-        gradient.addColorStop(1, `rgba(100, 100, 140, 0)`)
-
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, finalRadius * 3, 0, Math.PI * 2)
-        ctx.fillStyle = gradient
-        ctx.fill()
-      }
-    }
-
-    ctx.fillStyle = 'rgb(13, 13, 18)'
-    ctx.fillRect(0, 0, W, H)
-    draw()
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
-  }, [analyser, isPlaying])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={560}
-      height={72}
-      style={{ width: '100%', height: 72, borderRadius: 10, display: 'block', background: 'rgb(13, 13, 18)' }}
-    />
-  )
-}
-
-export default function ConfessionCard({ confession }) {
-  const [playing, setPlaying] = useState(false)
-  const [revealed, setRevealed] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [reactions, setReactions] = useState(confession.reactions || {})
-  const [audioError, setAudioError] = useState(false)
-  const [analyser, setAnalyser] = useState(null)
-
-  const audioRef = useRef(null)
-  const audioCtxRef = useRef(null)
-
-  const audioSrc = confession.audioUrl
-    ? confession.audioUrl.startsWith('http')
-      ? confession.audioUrl
-      : `${BASE}${confession.audioUrl}`
-    : null
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-
-  function handleMetadata() {
-    if (audioRef.current) setDuration(audioRef.current.duration)
+// ─── UTILITY: Codifica in formato WAV 16-bit ────────────────────────────────
+function audioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels
+  const sampleRate = buffer.sampleRate
+  const length = buffer.length * numCh * 2
+  const arrayBuffer = new ArrayBuffer(44 + length)
+  const view = new DataView(arrayBuffer)
+  const write = (offset, str) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i))
   }
-
-  function initAnalyser() {
-    if (audioCtxRef.current) return
-    const AudioCtx = window.AudioContext || window.webkitAudioContext
-    const ctx = new AudioCtx()
-    audioCtxRef.current = ctx
-
-    const analyserNode = ctx.createAnalyser()
-    analyserNode.fftSize = 512
-    
-    // IMPORTANTE: Connessione alla destinazione per sentire l'audio
-    const source = ctx.createMediaElementSource(audioRef.current)
-    source.connect(analyserNode)
-    analyserNode.connect(ctx.destination)
-
-    setAnalyser(analyserNode)
-  }
-
-  async function togglePlay() {
-    if (!audioRef.current) return
-    
-    try {
-      if (playing) {
-        audioRef.current.pause()
-        setPlaying(false)
-      } else {
-        initAnalyser()
-        if (audioCtxRef.current?.state === 'suspended') {
-          await audioCtxRef.current.resume()
-        }
-        await audioRef.current.play()
-        setPlaying(true)
-      }
-    } catch (err) {
-      console.error("Errore riproduzione:", err)
+  write(0, 'RIFF')
+  view.setUint32(4, 36 + length, true)
+  write(8, 'WAVE')
+  write(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, numCh, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * numCh * 2, true)
+  view.setUint16(32, numCh * 2, true)
+  view.setUint16(34, 16, true)
+  write(36, 'data')
+  view.setUint32(40, length, true)
+  let offset = 44
+  for (let i = 0; i < buffer.length; i++) {
+    for (let ch = 0; ch < numCh; ch++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]))
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
+      offset += 2
     }
   }
+  return new Blob([arrayBuffer], { type: 'audio/wav' })
+}
 
-  async function handleReact(emoji) {
+// ─── CURVA DI DISTORSIONE (Saturazione armonica) ───────────────────────────
+function makeDistortionCurve(amount) {
+  const n_samples = 44100
+  const curve = new Float32Array(n_samples)
+  const deg = Math.PI / 180
+  for (let i = 0; i < n_samples; ++i) {
+    const x = (i * 2) / n_samples - 1
+    curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x))
+  }
+  return curve
+}
+
+// ─── MOTORE DI DISTORSIONE: ANONIMATO TOTALE ────────────────────────────────
+async function distortAudio(blob) {
+  const arrayBuffer = await blob.arrayBuffer()
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  const tempCtx = new AudioCtx()
+  const audioBuffer = await tempCtx.decodeAudioData(arrayBuffer)
+  await tempCtx.close()
+
+  const sampleRate = audioBuffer.sampleRate
+  const numCh = audioBuffer.numberOfChannels
+  
+  // Aumentiamo la velocità per alzare il pitch (Voce più acuta/giovane)
+  const pitchFactor = 1.30 
+  const newLength = Math.floor(audioBuffer.length / pitchFactor)
+  
+  const offlineCtx = new OfflineAudioContext(numCh, newLength, sampleRate)
+
+  const source = offlineCtx.createBufferSource()
+  source.buffer = audioBuffer
+  source.playbackRate.value = pitchFactor
+
+  // FILTRO HIGHPASS: Rimuove il "corpo" e le risonanze basse identificative
+  const highPass = offlineCtx.createBiquadFilter()
+  highPass.type = 'highpass'
+  highPass.frequency.setValueAtTime(450, offlineCtx.currentTime)
+
+  // WAVESHAPER: Aggiunge distorsione per mascherare il timbro naturale
+  const waveshaper = offlineCtx.createWaveShaper()
+  waveshaper.curve = makeDistortionCurve(50)
+  waveshaper.oversample = '4x'
+
+  // COMPRESSORE: Livella il volume per chiarezza e maschera i respiri
+  const compressor = offlineCtx.createDynamicsCompressor()
+  compressor.threshold.setValueAtTime(-20, offlineCtx.currentTime)
+  compressor.ratio.setValueAtTime(12, offlineCtx.currentTime)
+
+  // Catena: Sorgente -> Filtro -> Distorsione -> Compressore -> Uscita
+  source.connect(highPass)
+  highPass.connect(waveshaper)
+  waveshaper.connect(compressor)
+  compressor.connect(offlineCtx.destination)
+
+  source.start(0)
+
+  const rendered = await offlineCtx.startRendering()
+  return audioBufferToWav(rendered)
+}
+
+// ─── AI INTEGRATION: Whisper + Llama ────────────────────────────────────────
+async function transcribeAudio(rawBlob) {
+  const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
+  const file = new File([rawBlob], 'audio.webm', { type: rawBlob.type || 'audio/webm' })
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('model', 'whisper-large-v3')
+  formData.append('language', 'it')
+
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${GROQ_API_KEY}` },
+    body: formData,
+  })
+  const data = await res.json()
+  return data.text?.trim() || ''
+}
+
+async function generateSummary(transcript) {
+  const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'Sei Lo Spiolo. Crea un titolo breve (max 8 parole) e misterioso basato sul testo fornito.' },
+        { role: 'user', content: transcript }
+      ],
+    }),
+  })
+  const data = await res.json()
+  return data.choices[0].message.content.trim()
+}
+
+// ─── COMPONENTE REACT ───────────────────────────────────────────────────────
+export default function ComposeForm({ onSubmitted }) {
+  const [step, setStep] = useState('idle')
+  const [category, setCategory] = useState('secrets')
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [summaryEdited, setSummaryEdited] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [statusMsg, setStatusMsg] = useState('')
+
+  const mediaRecorderRef = useRef(null)
+  const chunksRef = useRef([])
+
+  async function startRecording() {
+    chunksRef.current = []
     try {
-      const data = await api.confessions.react(confession.id, emoji)
-      setReactions(data.reactions)
-    } catch (e) { console.error('Errore reaction:', e) }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      mediaRecorderRef.current = mr
+      mr.ondataavailable = (e) => chunksRef.current.push(e.data)
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        processAudio(rawBlob)
+      }
+      mr.start()
+      setStep('recording')
+    } catch (e) { setErrorMsg("Accesso al microfono negato.") }
   }
 
-  useEffect(() => {
-    return () => { if (audioCtxRef.current) audioCtxRef.current.close() }
-  }, [])
+  async function processAudio(rawBlob) {
+    setStep('processing')
+    setStatusMsg('Criptazione identità vocale...')
+    try {
+      const [distorted, transcript] = await Promise.all([
+        distortAudio(rawBlob),
+        transcribeAudio(rawBlob)
+      ])
+      setAudioBlob(distorted)
+      
+      setStatusMsg('Generazione titolo spiolico...')
+      const title = transcript.length > 5 ? await generateSummary(transcript) : "Un segreto anonimo..."
+      setSummaryEdited(title)
+      setStep('preview')
+    } catch (e) { setStep('error'); setErrorMsg("Errore durante l'elaborazione."); }
+  }
+
+  async function submit() {
+    setStep('submitting')
+    const fd = new FormData()
+    fd.append('text', summaryEdited)
+    fd.append('category', category)
+    fd.append('audio', audioBlob, 'spiolo.wav')
+    try {
+      await api.confessions.create(fd)
+      onSubmitted?.()
+    } catch (e) { setStep('error'); }
+  }
+
+  const reset = () => { setStep('idle'); setAudioBlob(null); }
 
   return (
-    <div className="confession-card">
-      <div className="card-header">
-        <span className="category-badge">{CAT_IT[confession.category] || confession.category}</span>
-        <span className="card-time">{timeAgo(confession.createdAt)}</span>
-      </div>
-
-      <div className="card-text">
-        {revealed ? <span>{confession.text}</span> : <span className="censored-text">{censorText(confession.text)}</span>}
-        {!revealed && <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>}
-      </div>
-
-      {audioSrc && (
-        <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
-          {audioError ? (
-            <div style={{ color: '#da3633', fontSize: '0.8rem' }}>🪦 Errore caricamento audio.</div>
-          ) : (
-            <>
-              <audio
-                ref={audioRef}
-                src={audioSrc}
-                crossOrigin="anonymous" 
-                onLoadedMetadata={handleMetadata}
-                onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
-                onEnded={() => {
-                  setPlaying(false)
-                  setRevealed(true)
-                  api.confessions.listen(confession.id).catch(() => {})
-                }}
-                onError={() => setAudioError(true)}
-                preload="metadata"
-              />
-              <FogVisualizer analyser={analyser} isPlaying={playing} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <button className="play-btn" onClick={togglePlay}>{playing ? '⏸' : '▶'}</button>
-                <div className="audio-track" style={{ flex: 1 }}>
-                  <div className="progress-container">
-                    <div className="progress-bar" style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="time-display">{formatTime(currentTime)} / {formatTime(duration)}</div>
-                </div>
-              </div>
-            </>
-          )}
+    <div className="compose-area">
+      <div className="compose-label">Lo Spiolo — Confessa 🤫</div>
+      
+      {step === 'idle' && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-primary" onClick={startRecording}>🎤 Registra Segreto</button>
+          <select className="select-cat" value={category} onChange={e => setCategory(e.target.value)}>
+            {CATS.map(c => <option key={c} value={c}>{CAT_IT[c]}</option>)}
+          </select>
         </div>
       )}
 
-      <div className="reactions-row">
-        {EMOJIS.map(emoji => (
-          <button key={emoji} className="reaction-btn" onClick={() => handleReact(emoji)}>
-            <span>{emoji}</span>
-            <span className="reaction-count">{reactions[emoji] || 0}</span>
-          </button>
-        ))}
-      </div>
+      {step === 'recording' && (
+        <button className="btn-primary" style={{ background: '#da3633' }} onClick={() => mediaRecorderRef.current.stop()}>
+          ⏹ Ferma e Cripta
+        </button>
+      )}
+
+      {(step === 'processing') && <div className="status-msg">⚙️ {statusMsg}</div>}
+
+      {step === 'preview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <textarea 
+            className="summary-input"
+            value={summaryEdited} 
+            onChange={e => setSummaryEdited(e.target.value)} 
+          />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={reset}>Annulla</button>
+            <button className="btn-primary" onClick={submit}>Invia allo Spiolo 🐦</button>
+          </div>
+        </div>
+      )}
+
+      {step === 'error' && <div>❌ {errorMsg} <button onClick={reset}>Riprova</button></div>}
     </div>
   )
 }
