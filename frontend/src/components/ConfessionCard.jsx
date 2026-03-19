@@ -26,32 +26,10 @@ function censorText(text) {
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-// ─── Visualizzatore Nebbia ────────────────────────────────────────────────────
-const PARTICLE_COUNT = 90
-
-function FogVisualizer({ analyser, isPlaying }) {
+// ─── Visualizzatore Sussurro ──────────────────────────────────────────────────
+function WhisperVisualizer({ analyser, isPlaying }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
-  const particlesRef = useRef([])
-
-  // Inizializza le particelle una volta sola
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const W = canvas.width
-    const H = canvas.height
-
-    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      baseY: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.3,  // deriva orizzontale lenta
-      vy: (Math.random() - 0.5) * 0.2,  // deriva verticale lenta
-      radius: Math.random() * 2 + 0.5,
-      opacity: Math.random() * 0.4 + 0.1,
-      phase: Math.random() * Math.PI * 2, // fase per oscillazione indipendente
-    }))
-  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -60,70 +38,102 @@ function FogVisualizer({ analyser, isPlaying }) {
     const W = canvas.width
     const H = canvas.height
 
-    const dataArray = analyser ? new Uint8Array(analyser.frequencyBinCount) : null
+    const dataArray = analyser ? new Uint8Array(analyser.fftSize) : null
 
-    let frame = 0
+    // Volume smoothed — evita salti bruschi
+    let smoothVolume = 0
 
     function draw() {
       animRef.current = requestAnimationFrame(draw)
-      frame++
 
-      // Volume corrente (0–1)
-      let volume = 0
+      // Leggi dati waveform
       if (analyser && isPlaying && dataArray) {
-        analyser.getByteFrequencyData(dataArray)
-        const sum = dataArray.reduce((a, b) => a + b, 0)
-        volume = Math.min(1, (sum / dataArray.length) / 80)
+        analyser.getByteTimeDomainData(dataArray)
       }
 
-      // Sfondo con fade semi-trasparente — crea scia delle particelle
-      ctx.fillStyle = 'rgba(13, 13, 18, 0.18)'
+      // Calcola volume RMS corrente
+      let rms = 0
+      if (dataArray && isPlaying) {
+        for (let i = 0; i < dataArray.length; i++) {
+          const v = (dataArray[i] - 128) / 128
+          rms += v * v
+        }
+        rms = Math.sqrt(rms / dataArray.length)
+      }
+
+      // Smooth del volume — la risposta è lenta, come un sussurro
+      smoothVolume += (rms - smoothVolume) * 0.08
+
+      // Sfondo — pulisci completamente ogni frame
+      ctx.fillStyle = 'rgb(11, 11, 15)'
       ctx.fillRect(0, 0, W, H)
 
-      const particles = particlesRef.current
+      // Ampiezza massima dell'onda — quasi piatta a riposo, si alza col volume
+      // Min: 2px (piatta), Max: H/2 * 0.75 (mai esagerata)
+      const maxAmp = isPlaying
+        ? Math.max(2, smoothVolume * H * 2.8)
+        : 1.5
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i]
+      const points = 200 // punti della curva
 
-        // Aggiorna posizione — le particelle si agitano in base al volume
-        const agitation = isPlaying ? volume * 3.5 : 0.3
-        p.x += p.vx + Math.sin(frame * 0.01 + p.phase) * agitation * 0.4
-        p.y += p.vy + Math.cos(frame * 0.013 + p.phase) * agitation * 0.3
+      // Onda principale — bianco pallido
+      ctx.beginPath()
+      for (let i = 0; i <= points; i++) {
+        const x = (i / points) * W
+        let y = H / 2
 
-        // Wrap ai bordi
-        if (p.x < -5) p.x = W + 5
-        if (p.x > W + 5) p.x = -5
-        if (p.y < -5) p.y = H + 5
-        if (p.y > H + 5) p.y = -5
+        if (dataArray && isPlaying && dataArray.length > 0) {
+          const idx = Math.floor((i / points) * dataArray.length)
+          const raw = (dataArray[idx] - 128) / 128
+          y = H / 2 + raw * maxAmp
+        } else {
+          // Idle: onda sinusoidale quasi piatta e lentissima
+          const t = Date.now() / 4000
+          y = H / 2 + Math.sin(i * 0.08 + t) * 1.5
+        }
 
-        // Opacità pulsante in base al volume
-        const pulseOpacity = p.opacity + (isPlaying ? volume * 0.5 : 0)
-        const finalRadius = p.radius + (isPlaying ? volume * 2.5 : 0)
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      }
+      ctx.strokeStyle = `rgba(210, 210, 225, ${isPlaying ? 0.7 + smoothVolume * 0.3 : 0.25})`
+      ctx.lineWidth = isPlaying ? 1.2 + smoothVolume * 1.5 : 0.8
+      ctx.stroke()
 
-        // Disegna particella con alone sfumato
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, finalRadius * 3)
-        gradient.addColorStop(0, `rgba(200, 200, 220, ${Math.min(0.9, pulseOpacity * 1.5)})`)
-        gradient.addColorStop(0.4, `rgba(160, 160, 190, ${pulseOpacity * 0.6})`)
-        gradient.addColorStop(1, `rgba(100, 100, 140, 0)`)
-
+      // Onda fantasma — più sottile, leggermente sfasata, crea profondità
+      if (isPlaying) {
         ctx.beginPath()
-        ctx.arc(p.x, p.y, finalRadius * 3, 0, Math.PI * 2)
-        ctx.fillStyle = gradient
-        ctx.fill()
+        for (let i = 0; i <= points; i++) {
+          const x = (i / points) * W
+          let y = H / 2
+
+          if (dataArray && dataArray.length > 0) {
+            const idx = Math.floor((i / points) * dataArray.length)
+            const raw = (dataArray[idx] - 128) / 128
+            // Leggermente sfasata verticalmente
+            y = H / 2 + raw * maxAmp * 0.6 + 1.5
+          }
+
+          if (i === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+        ctx.strokeStyle = `rgba(180, 180, 210, ${smoothVolume * 0.25})`
+        ctx.lineWidth = 0.6
+        ctx.stroke()
       }
 
-      // Quando suona: aggiungi un velo di luce centrale pulsante
-      if (isPlaying && volume > 0.1) {
-        const centerGlow = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.6)
-        centerGlow.addColorStop(0, `rgba(180, 180, 220, ${volume * 0.06})`)
-        centerGlow.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = centerGlow
+      // Glow sottile al centro quando parla
+      if (isPlaying && smoothVolume > 0.02) {
+        const glow = ctx.createLinearGradient(0, 0, 0, H)
+        glow.addColorStop(0, 'rgba(0,0,0,0)')
+        glow.addColorStop(0.5, `rgba(200, 200, 230, ${smoothVolume * 0.04})`)
+        glow.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.fillStyle = glow
         ctx.fillRect(0, 0, W, H)
       }
     }
 
-    // Pulisci canvas prima di iniziare
-    ctx.fillStyle = 'rgb(13, 13, 18)'
+    // Pulisci al primo render
+    ctx.fillStyle = 'rgb(11, 11, 15)'
     ctx.fillRect(0, 0, W, H)
 
     draw()
@@ -134,13 +144,12 @@ function FogVisualizer({ analyser, isPlaying }) {
     <canvas
       ref={canvasRef}
       width={560}
-      height={72}
+      height={60}
       style={{
         width: '100%',
-        height: 72,
-        borderRadius: 10,
+        height: 60,
+        borderRadius: 8,
         display: 'block',
-        background: 'rgb(13, 13, 18)',
       }}
     />
   )
@@ -178,8 +187,8 @@ export default function ConfessionCard({ confession }) {
     audioCtxRef.current = ctx
 
     const analyserNode = ctx.createAnalyser()
-    analyserNode.fftSize = 512
-    analyserNode.smoothingTimeConstant = 0.85
+    analyserNode.fftSize = 1024
+    analyserNode.smoothingTimeConstant = 0.9 // molto smooth — risposta lenta, stile sussurro
 
     const source = ctx.createMediaElementSource(audioRef.current)
     source.connect(analyserNode)
@@ -238,7 +247,7 @@ export default function ConfessionCard({ confession }) {
         )}
       </div>
 
-      {/* Player con nebbia */}
+      {/* Player con visualizzatore sussurro */}
       {audioSrc && (
         <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
           {audioError ? (
@@ -247,11 +256,11 @@ export default function ConfessionCard({ confession }) {
             </div>
           ) : (
             <>
-             <audio
-  ref={audioRef}
-  src={audioSrc}
-  crossOrigin="anonymous"
-  onLoadedMetadata={handleMetadata}
+              <audio
+                ref={audioRef}
+                src={audioSrc}
+                crossOrigin="anonymous"
+                onLoadedMetadata={handleMetadata}
                 onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
                 onEnded={() => {
                   setPlaying(false)
@@ -262,8 +271,8 @@ export default function ConfessionCard({ confession }) {
                 preload="metadata"
               />
 
-              {/* Visualizzatore nebbia */}
-              <FogVisualizer analyser={analyser} isPlaying={playing} />
+              {/* Visualizzatore sussurro */}
+              <WhisperVisualizer analyser={analyser} isPlaying={playing} />
 
               {/* Controlli */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
