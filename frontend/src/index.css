@@ -93,122 +93,111 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
   font-family: var(--font-mono); cursor: pointer;
 }
 
-/* --- FILTRI CIRCOLARI --- */
-.tabs-row { display: flex; gap: 15px; justify-content: flex-start; margin-bottom: 40px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+/* --- FILTRI A PILLOLA --- */
+.tabs-row {
+  display: flex; gap: 8px; justify-content: flex-start;
+  margin-bottom: 40px; overflow-x: auto; padding: 10px 0;
+  scrollbar-width: none; flex-wrap: wrap;
+}
 .tabs-row::-webkit-scrollbar { display: none; }
 .tab-btn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
-  width: 70px; height: 70px; border-radius: 50%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 20px; padding: 8px 16px;
+  display: flex; align-items: center; gap: 6px;
   cursor: pointer; flex-shrink: 0; transition: 0.2s;
+  width: auto; height: auto;
 }
+.tab-btn:hover { background: rgba(255,255,255,0.09); border-color: var(--text-gray); }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); }
-.tab-btn.active .tab-name, .tab-btn.active .tab-emoji { color: var(--bg-dark) !important; font-weight: 700; }
-.tab-emoji { font-size: 1.5rem; margin-bottom: 2px; }
-.tab-name { font-size: 0.6rem; text-transform: uppercase; color: var(--text-gray); }
+.tab-btn.active .tab-name { color: var(--bg-dark) !important; font-weight: 700; }
+.tab-emoji { font-size: 1rem; }
+.tab-name { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-gray); }
+.tab-btn.active .tab-name { color: var(--bg-dark) !important; }
 
 /* --- CARD CONFESSIONE --- */
 .confession-card {
   background-color: var(--card-dark); border: 1px solid var(--border-muted);
-  border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border-radius: 16px; padding: 24px; margin-bottom: 24px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-/* Header card: categoria a sinistra, timestamp a destra */
+/* Header card */
 .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 14px;
 }
-
-/* Badge categoria — distinto, colorato, separato dal testo */
 .category-badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--accent);
-  background: rgba(88, 166, 255, 0.1);
-  border: 1px solid rgba(88, 166, 255, 0.25);
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-family: var(--font-mono);
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--accent);
+  background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.25);
+  padding: 3px 10px; border-radius: 20px; font-family: var(--font-mono);
 }
-
-/* Timestamp — piccolo, grigio, a destra */
 .card-time {
-  font-size: 0.7rem;
-  color: var(--text-gray);
-  opacity: 0.6;
-  font-family: var(--font-mono);
-  flex-shrink: 0;
+  font-size: 0.7rem; color: var(--text-gray);
+  opacity: 0.6; font-family: var(--font-mono); flex-shrink: 0;
 }
-
-/* Testo della card */
 .card-text {
-  font-size: 1rem;
-  line-height: 1.6;
-  margin-bottom: 4px;
-  color: var(--text-main);
+  font-size: 1rem; line-height: 1.6;
+  margin-bottom: 4px; color: var(--text-main);
 }
-
 .confession-text { font-size: 1.1rem; line-height: 1.6; margin: 15px 0; }
 .censored-text { color: var(--text-gray); letter-spacing: 2px; }
-
-/* Hint ascolta per sbloccare */
 .unlock-hint {
-  font-size: 0.65rem;
-  color: var(--text-gray);
-  opacity: 0.5;
-  letter-spacing: 1px;
-  margin-top: 6px;
-  font-family: var(--font-mono);
+  font-size: 0.65rem; color: var(--text-gray); opacity: 0.5;
+  letter-spacing: 1px; margin-top: 6px; font-family: var(--font-mono);
 }
 
 /* --- PLAYER AUDIO --- */
 .audio-row {
-  display: flex; align-items: center; gap: 15px; background: rgba(255, 255, 255, 0.03);
+  display: flex; align-items: center; gap: 15px;
+  background: rgba(255, 255, 255, 0.03);
   padding: 12px 16px; border-radius: 12px; margin: 15px 0;
 }
 .play-btn {
   background: var(--text-main); color: var(--bg-dark); border: none;
   width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
 }
 .audio-track { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.progress-container { height: 6px; background: var(--border-muted); border-radius: 3px; position: relative; overflow: hidden; }
-.progress-bar { height: 100%; background: var(--accent); position: absolute; left: 0; top: 0; transition: width 0.1s linear; }
-.time-display { font-size: 0.75rem; color: var(--text-gray); text-align: right; font-family: var(--font-mono); }
+.progress-container {
+  height: 6px; background: var(--border-muted);
+  border-radius: 3px; position: relative; overflow: hidden;
+}
+.progress-bar {
+  height: 100%; background: var(--accent);
+  position: absolute; left: 0; top: 0; transition: width 0.1s linear;
+}
+.time-display {
+  font-size: 0.75rem; color: var(--text-gray);
+  text-align: right; font-family: var(--font-mono);
+}
 
-/* --- REAZIONI CIRCOLARI --- */
+/* --- REAZIONI --- */
 .reactions-row {
-  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;
-  padding-top: 20px; border-top: 1px solid var(--border-muted);
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 20px; padding-top: 20px;
+  border-top: 1px solid var(--border-muted);
 }
 .reaction-btn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
-  width: 50px; height: 50px; border-radius: 50%;
+  width: 58px; height: 58px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; transition: 0.2s;
+  cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  gap: 2px;
 }
-.reaction-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--text-gray); }
-.reaction-btn.active { background: var(--accent); border-color: var(--accent); }
-.reaction-btn.active span { color: var(--bg-dark) !important; font-weight: 700; }
-.emoji-icon { font-size: 1.2rem; }
-
-/* Contatore reazioni — bianco/grigio chiaro, leggibile su sfondo scuro */
+.reaction-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--text-gray); transform: scale(1.08); }
+.reaction-btn.active { background: rgba(88, 166, 255, 0.15); border-color: var(--accent); }
+.emoji-icon { font-size: 1.4rem; line-height: 1; }
 .reaction-count {
-  font-size: 0.65rem;
-  color: var(--text-gray);
-  margin-top: 1px;
-  font-family: var(--font-mono);
-  line-height: 1;
+  font-size: 0.68rem; color: var(--text-main);
+  font-family: var(--font-mono); line-height: 1; opacity: 0.8;
 }
 
 /* --- MOBILE RESPONSIVE --- */
 @media (max-width: 480px) {
   .page-title { font-size: 2.5rem; }
-  .tab-btn { width: 60px; height: 60px; }
   .compose-area { padding: 20px; }
-  .reaction-btn { width: 45px; height: 45px; }
+  .reaction-btn { width: 52px; height: 52px; }
+  .emoji-icon { font-size: 1.2rem; }
 }
