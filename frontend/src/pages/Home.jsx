@@ -26,7 +26,7 @@ export default function Home() {
       setConfessions(data?.confessions || [])
       const s = await api.stats()
       setStats({ total: s.confessions_posted || 0, today: s.total_listens || 0 })
-    } catch (e) { console.error("Errore caricamento:", e) }
+    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
@@ -49,8 +49,10 @@ export default function Home() {
         </button>
       </header>
 
-      {/* POSIZIONE CORRETTA: FUORI DAL FEED */}
-      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); loadData(); }} />}
+      {/* COMPONENTE SINGOLO: POSIZIONATO FUORI DAL FEED */}
+      {showCompose && (
+        <ComposeForm onSubmitted={() => { setShowCompose(false); loadData(); }} />
+      )}
 
       <nav className="tabs-row">
         {CAT_DATA.map(cat => (
