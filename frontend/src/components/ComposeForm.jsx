@@ -84,7 +84,7 @@ async function distortAudio(blob) {
 
   // Stadio 3: waveshaper — saturazione leggera, armoniche artificiali
   const waveshaper = offlineCtx.createWaveShaper()
-  waveshaper.curve = makeDistortionCurve(50) // 25 = leggero, aumenta per più distorsione
+  waveshaper.curve = makeDistortionCurve(25) // 25 = leggero, aumenta per più distorsione
   waveshaper.oversample = '4x' // anti-aliasing
 
   // Gain finale per normalizzare il volume dopo la catena
