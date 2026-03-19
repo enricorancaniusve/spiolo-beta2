@@ -19,9 +19,24 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}g fa`
 }
 
-function censorText(text) {
-  if (!text) return ''
-  return text.split(' ').map(word => '█'.repeat(Math.max(2, word.length))).join(' ')
+// ─── Testo censurato: barre animate che pulsano ───────────────────────────────
+function CensoredText({ text }) {
+  if (!text) return null
+  const words = text.split(' ')
+  return (
+    <div className="censored-bars">
+      {words.map((word, i) => (
+        <span
+          key={i}
+          className="censored-bar"
+          style={{
+            width: `${Math.max(24, word.length * 9)}px`,
+            animationDelay: `${(i * 137) % 900}ms`, // offset sfasato per ogni barra
+          }}
+        />
+      ))}
+    </div>
+  )
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -132,7 +147,7 @@ export default function ConfessionCard({ confession }) {
   const [audioError, setAudioError] = useState(false)
   const [analyser, setAnalyser] = useState(null)
   const [myReaction, setMyReaction] = useState(() => getSavedReaction(confession.id))
-  const [reacting, setReacting] = useState(false) // blocca doppi click
+  const [reacting, setReacting] = useState(false)
 
   const audioRef = useRef(null)
   const audioCtxRef = useRef(null)
@@ -177,12 +192,10 @@ export default function ConfessionCard({ confession }) {
   }
 
   async function handleReact(emoji) {
-    if (reacting) return // evita doppi click
+    if (reacting) return
     setReacting(true)
-
     try {
       if (myReaction === emoji) {
-        // Stesso emoji → rimuovi
         const res = await fetch(`${BASE}/api/confessions/${confession.id}/react`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -195,7 +208,6 @@ export default function ConfessionCard({ confession }) {
           clearReaction(confession.id)
         }
       } else {
-        // Nuova reazione o cambio — manda previousEmoji al backend
         const res = await fetch(`${BASE}/api/confessions/${confession.id}/react`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -230,13 +242,13 @@ export default function ConfessionCard({ confession }) {
 
       <div className="card-text">
         {revealed ? (
-          <span>{confession.text}</span>
+          <span className="revealed-text">{confession.text}</span>
         ) : (
-          <span className="censored-text" title="Ascolta per sbloccare">
-            {censorText(confession.text)}
-          </span>
+          <>
+            <CensoredText text={confession.text} />
+            <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>
+          </>
         )}
-        {!revealed && <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>}
       </div>
 
       {audioSrc && (
