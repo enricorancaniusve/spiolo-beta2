@@ -77,23 +77,14 @@ export default function SpiolaDetail() {
 
       {confession && (
         <>
-          <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{
-              fontSize: '0.7rem', color: 'var(--text-gray)',
-              fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
-              letterSpacing: 1.5, opacity: 0.5,
-            }}>
-              🗣️ Qualcuno ha spiolato
-            </div>
-            <h2 style={{
-              fontFamily: 'var(--font-fancy)', fontSize: '1.6rem',
-              color: 'var(--text-main)', margin: 0,
-              lineHeight: 1.3, letterSpacing: '-0.3px',
-            }}>
-              {confession.text}
-            </h2>
+          <div style={{
+            fontSize: '0.7rem', color: 'var(--text-gray)',
+            fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
+            letterSpacing: 1.5, opacity: 0.5, marginBottom: 20,
+          }}>
+            🗣️ Qualcuno ha spiolato
           </div>
-          <ConfessionCard confession={confession} hideTitleInCard />
+          <ConfessionCard confession={confession} />
         </>
       )}
     </div>
