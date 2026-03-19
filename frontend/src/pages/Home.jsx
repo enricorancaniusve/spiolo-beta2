@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
 import ComposeForm from '../components/ComposeForm'
@@ -23,9 +23,8 @@ export default function Home() {
   const [stats, setStats] = useState({ total: 0, today: 0 })
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [visible, setVisible] = useState(false) // per fade-in
+  const [visible, setVisible] = useState(false)
 
-  // Carica prima pagina
   useEffect(() => {
     let isMounted = true
     setVisible(false)
@@ -41,7 +40,6 @@ export default function Home() {
           const list = data?.confessions || []
           setConfessions(list)
           setHasMore(list.length === PAGE_SIZE)
-          // Fade-in con piccolo delay
           setTimeout(() => setVisible(true), 50)
         }
         try {
@@ -58,7 +56,12 @@ export default function Home() {
     return () => { isMounted = false }
   }, [category])
 
-  // Carica pagina successiva
+  // Blocca scroll body quando modal aperto
+  useEffect(() => {
+    document.body.style.overflow = showCompose ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [showCompose])
+
   async function loadMore() {
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
@@ -83,11 +86,9 @@ export default function Home() {
       <header className="app-header">
         <h1 className="page-title">Lo Spiolo</h1>
         <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
-
         <div className="stats-row">
           Spiólate totali: <b>{(stats.total || 0).toLocaleString('it-IT')}</b>. Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b>
         </div>
-
         <div className="taxonomy-label">
           <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
           <p className="taxonomy-text">
@@ -95,13 +96,6 @@ export default function Home() {
           </p>
         </div>
       </header>
-
-      {showCompose && (
-        <ComposeForm onSubmitted={() => {
-          setShowCompose(false)
-          window.location.reload()
-        }} />
-      )}
 
       <nav className="tabs-row">
         {CAT_DATA.map(cat => (
@@ -129,32 +123,16 @@ export default function Home() {
               </div>
             )}
             {confessions.map((c, i) => (
-              <div
-                key={c.id}
-                className="card-fadein"
-                style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}
-              >
+              <div key={c.id} className="card-fadein" style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}>
                 <ConfessionCard confession={c} />
               </div>
             ))}
-
-            {/* Bottone carica altri */}
             {hasMore && !loading && (
               <div style={{ textAlign: 'center', padding: '20px 0 40px' }}>
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border-muted)',
-                    color: 'var(--text-gray)',
-                    padding: '10px 28px',
-                    borderRadius: 20,
-                    cursor: loadingMore ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.85rem',
-                    transition: 'border-color 0.2s, color 0.2s',
-                  }}
+                  className="load-more-btn"
                 >
                   {loadingMore ? 'Caricamento…' : 'Carica altri segreti'}
                 </button>
@@ -164,15 +142,22 @@ export default function Home() {
         )}
       </section>
 
-      {/* Bottone "+ Spiola" fisso in basso */}
+      {/* FAB */}
       <div className="fab-container">
-        <button
-          className="fab-btn"
-          onClick={() => setShowCompose(v => !v)}
-        >
-          {showCompose ? '✕ Chiudi' : '🗣️ Spiola'}
+        <button className="fab-btn" onClick={() => setShowCompose(true)}>
+          🗣️ Spiola
         </button>
       </div>
+
+      {/* Modal compose */}
+      {showCompose && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCompose(false) }}>
+          <div className="modal-box">
+            <button className="modal-close" onClick={() => setShowCompose(false)}>✕</button>
+            <ComposeForm onSubmitted={() => { setShowCompose(false); window.location.reload() }} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
