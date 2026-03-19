@@ -23,8 +23,12 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.get('/api/stats', async (req, res) => {
   const { pool } = require('./db');
   const r = await pool.query(`
-    SELECT COUNT(*)::int AS confessions_posted,
-           COALESCE(SUM(listen_count),0)::int AS total_listens
+    SELECT 
+      COUNT(*)::int AS confessions_posted,
+      COALESCE(SUM(listen_count), 0)::int AS total_listens,
+      COUNT(*) FILTER (
+        WHERE created_at >= CURRENT_DATE
+      )::int AS today
     FROM confessions
   `);
   res.json(r.rows[0]);
