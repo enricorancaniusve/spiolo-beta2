@@ -172,9 +172,6 @@ function WhisperVisualizer({ analyser, isPlaying }) {
   )
 }
 
-// ─── Componente principale ────────────────────────────────────────────────────
-// hideTitleInCard: se true, nasconde il testo censurato (usato nella pagina singola
-// dove il titolo è già mostrato sopra)
 export default function ConfessionCard({ confession, hideTitleInCard = false }) {
   const [playing, setPlaying] = useState(false)
   const [revealed, setRevealed] = useState(false)
@@ -305,13 +302,14 @@ export default function ConfessionCard({ confession, hideTitleInCard = false }) 
 
   return (
     <div className="confession-card">
-      {/* Header */}
       <div className="card-header">
         <span className="category-badge">
           {CAT_IT[confession.category] || confession.category}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Bottone condivisione con icona SVG */}
+          {/* 1. Spostato l'orario prima del tasto condivisione */}
+          <span className="card-time">{timeAgo(confession.createdAt)}</span>
+          
           <button
             onClick={handleShare}
             title={copied ? 'Link copiato!' : 'Condividi spiola'}
@@ -330,11 +328,9 @@ export default function ConfessionCard({ confession, hideTitleInCard = false }) 
               : <ShareIcon size={14} color="currentColor" />
             }
           </button>
-          <span className="card-time">{timeAgo(confession.createdAt)}</span>
         </div>
       </div>
 
-      {/* Testo — nascosto nella pagina singola dove è già nell'header */}
       {!hideTitleInCard && (
         <div className="card-text">
           <CensoredText text={confession.text} progress={progress} revealed={revealed} />
@@ -348,7 +344,6 @@ export default function ConfessionCard({ confession, hideTitleInCard = false }) 
         </div>
       )}
 
-      {/* Nella pagina singola mostra il testo rivelato se già sbloccato */}
       {hideTitleInCard && revealed && (
         <div className="card-text" style={{ marginBottom: 4 }}>
           <span style={{ color: 'var(--text-gray)', fontSize: '0.8rem', fontStyle: 'italic' }}>
@@ -357,7 +352,6 @@ export default function ConfessionCard({ confession, hideTitleInCard = false }) 
         </div>
       )}
 
-      {/* Player */}
       {audioSrc && (
         <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
           {audioError ? (
@@ -410,7 +404,6 @@ export default function ConfessionCard({ confession, hideTitleInCard = false }) 
         </div>
       )}
 
-      {/* Reactions */}
       <div className="reactions-row">
         {EMOJIS.map(emoji => (
           <button
