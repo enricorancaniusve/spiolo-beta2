@@ -38,7 +38,22 @@ function audioBufferToWav(buffer) {
   return new Blob([arrayBuffer], { type: 'audio/wav' })
 }
 
-// ─── Distorsione: voce telefonica + rumore bianco (no chipmunk) ───────────────
+// ─── Curva Waveshaper per saturazione leggera ─────────────────────────────────
+// Aggiunge armoniche artificiali che distruggono la "trama" della voce originale
+function makeDistortionCurve(amount = 30) {
+  const samples = 256
+  const curve = new Float32Array(samples)
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1
+    curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x))
+  }
+  return curve
+}
+
+// ─── Distorsione vocale a 3 stadi ────────────────────────────────────────────
+// 1. Pitch shift (1.35x) — cambia frequenza fondamentale, voce androgina
+// 2. Highpass a 400Hz — taglia risonanze del petto, voce metallica
+// 3. Waveshaper — saturazione leggera, distrugge la trama vocale
 async function distortAudio(blob) {
   const arrayBuffer = await blob.arrayBuffer()
   const AudioCtx = window.AudioContext || window.webkitAudioContext
@@ -46,57 +61,43 @@ async function distortAudio(blob) {
   const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
   await ctx.close()
 
-  const sampleRate = audioBuffer.sampleRate
-  const length = audioBuffer.length
-  const numCh = audioBuffer.numberOfChannels
+  // Stadio 1: pitch shift con playbackRate
+  // 1.35x = voce acuta ma ancora comprensibile, timbro completamente alterato
+  const PITCH = 1.35
+  const newLength = Math.ceil(audioBuffer.length / PITCH)
 
-  const offlineCtx = new OfflineAudioContext(numCh, length, sampleRate)
+  const offlineCtx = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    newLength,
+    audioBuffer.sampleRate
+  )
 
-  // Sorgente: voce originale a velocità normale (NO chipmunk)
   const source = offlineCtx.createBufferSource()
   source.buffer = audioBuffer
-  source.playbackRate.value = 1.0
+  source.playbackRate.value = PITCH
 
-  // Filtro passa-banda: taglia basse e alte freq → effetto "telefonico"
-  // rende la voce meno riconoscibile senza alterarne la velocità
-  const bandpass = offlineCtx.createBiquadFilter()
-  bandpass.type = 'bandpass'
-  bandpass.frequency.value = 1800
-  bandpass.Q.value = 0.6
+  // Stadio 2: highpass a 400Hz — taglia le risonanze basse identificative
+  const highpass = offlineCtx.createBiquadFilter()
+  highpass.type = 'highpass'
+  highpass.frequency.value = 400
+  highpass.Q.value = 0.9
 
-  // Gain voce
-  const voiceGain = offlineCtx.createGain()
-  voiceGain.gain.value = 0.75
+  // Stadio 3: waveshaper — saturazione leggera, armoniche artificiali
+  const waveshaper = offlineCtx.createWaveShaper()
+  waveshaper.curve = makeDistortionCurve(25) // 25 = leggero, aumenta per più distorsione
+  waveshaper.oversample = '4x' // anti-aliasing
 
-  // Rumore bianco sovrapposto
-  const noiseBuffer = offlineCtx.createBuffer(1, length, sampleRate)
-  const noiseData = noiseBuffer.getChannelData(0)
-  for (let i = 0; i < length; i++) {
-    noiseData[i] = (Math.random() * 2 - 1)
-  }
-  const noiseSource = offlineCtx.createBufferSource()
-  noiseSource.buffer = noiseBuffer
+  // Gain finale per normalizzare il volume dopo la catena
+  const outputGain = offlineCtx.createGain()
+  outputGain.gain.value = 0.85
 
-  // Filtro sul rumore: solo alte frequenze → fruscio/sussurro
-  const noiseFilter = offlineCtx.createBiquadFilter()
-  noiseFilter.type = 'highpass'
-  noiseFilter.frequency.value = 4000
-
-  // Gain rumore: velo leggero sopra la voce
-  const noiseGain = offlineCtx.createGain()
-  noiseGain.gain.value = 0.06 // alza a 0.10 per effetto più marcato
-
-  // Routing
-  source.connect(bandpass)
-  bandpass.connect(voiceGain)
-  voiceGain.connect(offlineCtx.destination)
-
-  noiseSource.connect(noiseFilter)
-  noiseFilter.connect(noiseGain)
-  noiseGain.connect(offlineCtx.destination)
+  // Catena: source → highpass → waveshaper → gain → destination
+  source.connect(highpass)
+  highpass.connect(waveshaper)
+  waveshaper.connect(outputGain)
+  outputGain.connect(offlineCtx.destination)
 
   source.start(0)
-  noiseSource.start(0)
 
   const rendered = await offlineCtx.startRendering()
   return audioBufferToWav(rendered)
