@@ -19,43 +19,29 @@ export default function Home() {
   const [showCompose, setShowCompose] = useState(false)
   const [stats, setStats] = useState({ total: 0, today: 0 })
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchData() {
-      setLoading(true)
-      try {
-        const data = await api.confessions.list(category ? { category } : {})
-        if (isMounted) setConfessions(data?.confessions || [])
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const data = await api.confessions.list(category ? { category } : {})
+      setConfessions(data?.confessions || [])
+      const s = await api.stats()
+      setStats({ total: s.confessions_posted || 0, today: s.total_listens || 0 })
+    } catch (e) { console.error("Errore caricamento:", e) }
+    setLoading(false)
+  }
 
-        try {
-          const s = await api.stats()
-          if (isMounted && s) setStats({ total: s.total || 0, today: s.today || 0 })
-        } catch (err) { console.warn("Stats non disponibili") }
-      } catch (e) {
-        console.error("Errore Home:", e)
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { isMounted = false }
-  }, [category])
+  useEffect(() => { loadData() }, [category])
 
   return (
     <div className="home-container">
       <header className="app-header">
         <h1 className="page-title">Lo Spiolo</h1>
-        <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
-        
-        <div className="stats-row">
-          Spiólate totali: <b>{(stats.total || 0).toLocaleString('it-IT')}</b>. Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b>
-        </div>
+        <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto.</p>
+        <div className="stats-row">Spiólate totali: <b>{stats.total}</b>. Oggi: <b>{stats.today}</b></div>
         
         <div className="taxonomy-label">
-          <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
-          <p className="taxonomy-text">
-            Lo spiolo fotografa le mucche che si tolgono il reggiseno, va a spiare i fidanzamenti dei gabbiani sulla spiaggia, guarda nei frigoriferi, apre la posta, fruga nella spazzatura, sbircia dalla serratura… e poi racconta, maligno, a un altro spiolo, nella catena infinita del pettegolezzo spiolico.
-          </p>
+          <div className="taxonomy-title">Spiolus paparazzus — Tassonomia</div>
+          <p className="taxonomy-text">Lo spiolo fruga nella spazzatura, sbircia dalla serratura… e poi racconta.</p>
         </div>
 
         <button className="btn-primary" onClick={() => setShowCompose(!showCompose)}>
@@ -63,15 +49,12 @@ export default function Home() {
         </button>
       </header>
 
-      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); window.location.reload(); }} />}
+      {/* POSIZIONE CORRETTA: FUORI DAL FEED */}
+      {showCompose && <ComposeForm onSubmitted={() => { setShowCompose(false); loadData(); }} />}
 
       <nav className="tabs-row">
         {CAT_DATA.map(cat => (
-          <button 
-            key={String(cat.id)} 
-            className={`tab-btn ${category === cat.id ? 'active' : ''}`}
-            onClick={() => setCategory(cat.id)}
-          >
+          <button key={String(cat.id)} className={`tab-btn ${category === cat.id ? 'active' : ''}`} onClick={() => setCategory(cat.id)}>
             <span className="tab-emoji">{cat.emoji}</span>
             <span className="tab-name">{cat.name}</span>
           </button>
@@ -79,14 +62,9 @@ export default function Home() {
       </nav>
 
       <section className="feed">
-        {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Intercettando segreti...</div>
-        ) : (
-          <>
-            {confessions.length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-gray)', padding: '40px 0' }}>Nessun segreto qui.</div>}
-            {confessions.map(c => <ConfessionCard key={c.id} confession={c} />)}
-          </>
-        )}
+        {loading ? <div style={{textAlign: 'center', color: 'var(--text-gray)'}}>Intercettando segreti...</div> : 
+          confessions.map(c => <ConfessionCard key={c.id} confession={c} />)
+        }
       </section>
     </div>
   )
