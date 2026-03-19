@@ -24,23 +24,16 @@ body {
 }
 #root { width: 100%; max-width: 600px; padding: 40px 20px; }
 
-/* --- NAVIGAZIONE SUPERIORE --- */
+/* --- NAVIGAZIONE --- */
 nav.main-nav {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin-bottom: 40px;
-  padding-bottom: 20px;
+  display: flex; justify-content: center; gap: 30px;
+  margin-bottom: 40px; padding-bottom: 20px;
   border-bottom: 1px solid var(--border-muted);
 }
 nav.main-nav a {
-  color: var(--text-gray);
-  text-decoration: none;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  transition: color 0.2s;
+  color: var(--text-gray); text-decoration: none;
+  font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+  position: relative; transition: color 0.2s;
 }
 nav.main-nav a:hover, nav.main-nav a.active { color: var(--text-main); }
 nav.main-nav a.active::after {
@@ -49,7 +42,7 @@ nav.main-nav a.active::after {
   background-color: var(--accent); border-radius: 50%;
 }
 
-/* --- HEADER CENTRATO --- */
+/* --- HEADER --- */
 .app-header { text-align: center; margin-bottom: 50px; }
 .page-title { font-family: var(--font-fancy); font-size: 3.5rem; margin-bottom: 10px; color: var(--text-main); letter-spacing: -1px; }
 .page-subtitle { color: var(--text-gray); font-style: italic; margin-bottom: 15px; font-size: 0.95rem; }
@@ -58,13 +51,13 @@ nav.main-nav a.active::after {
 
 /* TASSONOMIA */
 .taxonomy-label {
-  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-muted);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border-muted);
   border-radius: 12px; padding: 20px; margin: 30px 0; text-align: left;
 }
 .taxonomy-title { color: var(--accent); font-family: var(--font-fancy); margin-bottom: 10px; font-size: 1.1rem; }
 .taxonomy-text { font-size: 0.85rem; line-height: 1.6; color: var(--text-gray); }
 
-/* --- BOTTONI PRINCIPALI --- */
+/* --- BOTTONI --- */
 button.btn-primary {
   background: var(--text-main); color: var(--bg-dark); border: none;
   padding: 12px 24px; border-radius: 8px; font-weight: 700;
@@ -73,11 +66,35 @@ button.btn-primary {
 }
 button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 
-/* --- AREA DI INVIO (COMPOSE FORM) --- */
+/* --- FAB BOTTONE FISSO IN BASSO --- */
+.fab-container {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+.fab-btn {
+  background: var(--text-main);
+  color: var(--bg-dark);
+  border: none;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+.fab-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,0,0,0.6); }
+
+/* --- COMPOSE FORM --- */
 .compose-area {
   background: var(--card-dark); border: 1px solid var(--border-muted);
   border-radius: 16px; padding: 25px; margin-bottom: 40px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px;
 }
 .compose-label { font-family: var(--font-fancy); font-size: 1.4rem; color: var(--text-main); margin-bottom: 5px; }
 .compose-area textarea {
@@ -101,7 +118,7 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 }
 .tabs-row::-webkit-scrollbar { display: none; }
 .tab-btn {
-  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border-muted);
   border-radius: 20px; padding: 8px 16px;
   display: flex; align-items: center; gap: 6px;
   cursor: pointer; flex-shrink: 0; transition: 0.2s;
@@ -112,7 +129,22 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 .tab-btn.active .tab-name { color: var(--bg-dark) !important; font-weight: 700; }
 .tab-emoji { font-size: 1rem; }
 .tab-name { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-gray); }
-.tab-btn.active .tab-name { color: var(--bg-dark) !important; }
+
+/* --- FEED FADE-IN --- */
+.feed {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.feed.feed-visible { opacity: 1; }
+
+/* Card fade-in con stagger */
+.card-fadein {
+  animation: cardFadeIn 0.4s ease both;
+}
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* --- CARD CONFESSIONE --- */
 .confession-card {
@@ -120,8 +152,6 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
   border-radius: 16px; padding: 24px; margin-bottom: 24px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
-
-/* Header card */
 .card-header {
   display: flex; align-items: center;
   justify-content: space-between; margin-bottom: 14px;
@@ -129,7 +159,7 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 .category-badge {
   font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 1.2px; color: var(--accent);
-  background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.25);
+  background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.25);
   padding: 3px 10px; border-radius: 20px; font-family: var(--font-mono);
 }
 .card-time {
@@ -140,8 +170,28 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
   font-size: 1rem; line-height: 1.6;
   margin-bottom: 4px; color: var(--text-main);
 }
-.confession-text { font-size: 1.1rem; line-height: 1.6; margin: 15px 0; }
-.censored-text { color: var(--text-gray); letter-spacing: 2px; }
+.revealed-text { color: var(--text-main); }
+
+/* --- TESTO CENSURATO ANIMATO --- */
+.censored-bars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  padding: 4px 0 8px;
+}
+.censored-bar {
+  display: inline-block;
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(139, 148, 158, 0.25);
+  animation: barPulse 2.4s ease-in-out infinite;
+}
+@keyframes barPulse {
+  0%, 100% { opacity: 0.25; background: rgba(139,148,158,0.25); }
+  50%       { opacity: 0.55; background: rgba(139,148,158,0.45); }
+}
+
 .unlock-hint {
   font-size: 0.65rem; color: var(--text-gray); opacity: 0.5;
   letter-spacing: 1px; margin-top: 6px; font-family: var(--font-mono);
@@ -150,7 +200,7 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 /* --- PLAYER AUDIO --- */
 .audio-row {
   display: flex; align-items: center; gap: 15px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255,255,255,0.03);
   padding: 12px 16px; border-radius: 12px; margin: 15px 0;
 }
 .play-btn {
@@ -175,29 +225,31 @@ button.btn-primary:hover { transform: translateY(-2px); background: #ffffff; }
 
 /* --- REAZIONI --- */
 .reactions-row {
-  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  display: flex; gap: 8px; flex-wrap: wrap;
+  justify-content: center;
   margin-top: 20px; padding-top: 20px;
   border-top: 1px solid var(--border-muted);
 }
 .reaction-btn {
-  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-muted);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border-muted);
   width: 58px; height: 58px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.15s;
   gap: 2px;
 }
 .reaction-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--text-gray); transform: scale(1.08); }
-.reaction-btn.active { background: rgba(88, 166, 255, 0.15); border-color: var(--accent); }
+.reaction-btn.active { background: rgba(88,166,255,0.15); border-color: var(--accent); }
 .emoji-icon { font-size: 1.4rem; line-height: 1; }
 .reaction-count {
   font-size: 0.68rem; color: var(--text-main);
   font-family: var(--font-mono); line-height: 1; opacity: 0.8;
 }
 
-/* --- MOBILE RESPONSIVE --- */
+/* --- MOBILE --- */
 @media (max-width: 480px) {
   .page-title { font-size: 2.5rem; }
   .compose-area { padding: 20px; }
   .reaction-btn { width: 52px; height: 52px; }
   .emoji-icon { font-size: 1.2rem; }
+  .fab-btn { padding: 12px 24px; font-size: 0.9rem; }
 }
