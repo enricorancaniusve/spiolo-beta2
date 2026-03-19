@@ -20,13 +20,24 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}g fa`
 }
 
-// ─── Testo censurato con animazione dissolvi ──────────────────────────────────
+// ─── Icona condivisione SVG ───────────────────────────────────────────────────
+const ShareIcon = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+)
+
+// ─── Testo censurato con dissolvi ─────────────────────────────────────────────
 function CensoredText({ text, progress, revealed }) {
   if (!text) return null
   const words = text.split(' ')
 
   if (revealed) {
-    // Testo completamente sbloccato — ogni parola appare con fade + slide
     return (
       <div className="revealed-text-container">
         {words.map((word, i) => (
@@ -42,9 +53,6 @@ function CensoredText({ text, progress, revealed }) {
     )
   }
 
-  // Censura con dissolvi graduale vicino alla soglia
-  // Sotto 70%: tutto censurato
-  // 70-80%: le barre iniziano a scolorire (opacity scende)
   const fadeRatio = progress < 0.70 ? 0 : Math.min(1, (progress - 0.70) / 0.10)
 
   return (
@@ -56,7 +64,6 @@ function CensoredText({ text, progress, revealed }) {
           style={{
             width: `${Math.max(24, word.length * 9)}px`,
             animationDelay: `${(i * 137) % 900}ms`,
-            // Le barre svaniscono gradualmente avvicinandosi alla soglia
             opacity: 1 - fadeRatio * 0.7,
             filter: fadeRatio > 0 ? `blur(${fadeRatio * 2}px)` : 'none',
             transition: 'opacity 0.3s ease, filter 0.3s ease',
@@ -166,7 +173,9 @@ function WhisperVisualizer({ analyser, isPlaying }) {
 }
 
 // ─── Componente principale ────────────────────────────────────────────────────
-export default function ConfessionCard({ confession }) {
+// hideTitleInCard: se true, nasconde il testo censurato (usato nella pagina singola
+// dove il titolo è già mostrato sopra)
+export default function ConfessionCard({ confession, hideTitleInCard = false }) {
   const [playing, setPlaying] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -237,14 +246,12 @@ export default function ConfessionCard({ confession }) {
     }
   }
 
-  // ─── Condivisione ─────────────────────────────────────────────────────────
   function handleShare() {
     const url = `${window.location.origin}/spiola/${confession.id}`
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }).catch(() => {
-      // Fallback per browser che non supportano clipboard API
       const el = document.createElement('input')
       el.value = url
       document.body.appendChild(el)
@@ -298,46 +305,59 @@ export default function ConfessionCard({ confession }) {
 
   return (
     <div className="confession-card">
+      {/* Header */}
       <div className="card-header">
         <span className="category-badge">
           {CAT_IT[confession.category] || confession.category}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Bottone condivisione */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Bottone condivisione con icona SVG */}
           <button
             onClick={handleShare}
-            title="Copia link"
+            title={copied ? 'Link copiato!' : 'Condividi spiola'}
             style={{
               background: 'none', border: 'none',
               color: copied ? 'var(--accent)' : 'var(--text-gray)',
-              cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'var(--font-mono)',
-              opacity: 0.7, transition: 'color 0.2s, opacity 0.2s',
-              padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+              cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
+              opacity: copied ? 1 : 0.6,
+              transition: 'color 0.2s, opacity 0.2s',
             }}
           >
-            {copied ? '✓ copiato' : '⬡ condividi'}
+            {copied
+              ? <span style={{ color: 'var(--accent)', fontSize: '0.72rem' }}>✓ copiato</span>
+              : <ShareIcon size={14} color="currentColor" />
+            }
           </button>
           <span className="card-time">{timeAgo(confession.createdAt)}</span>
         </div>
       </div>
 
-      {/* Testo con animazione reveal */}
-      <div className="card-text">
-        <CensoredText
-          text={confession.text}
-          progress={progress}
-          revealed={revealed}
-        />
-        {!revealed && (
-          <div className="unlock-hint">
-            {showUnlockProgress
-              ? `🔓 ${progressPct}% — continua ad ascoltare`
-              : '🔒 ASCOLTA PER SBLOCCARE'}
-          </div>
-        )}
-      </div>
+      {/* Testo — nascosto nella pagina singola dove è già nell'header */}
+      {!hideTitleInCard && (
+        <div className="card-text">
+          <CensoredText text={confession.text} progress={progress} revealed={revealed} />
+          {!revealed && (
+            <div className="unlock-hint">
+              {showUnlockProgress
+                ? `🔓 ${progressPct}% — continua ad ascoltare`
+                : '🔒 ASCOLTA PER SBLOCCARE'}
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* Nella pagina singola mostra il testo rivelato se già sbloccato */}
+      {hideTitleInCard && revealed && (
+        <div className="card-text" style={{ marginBottom: 4 }}>
+          <span style={{ color: 'var(--text-gray)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+            🔓 Segreto svelato
+          </span>
+        </div>
+      )}
+
+      {/* Player */}
       {audioSrc && (
         <div className="audio-row" style={{ flexDirection: 'column', gap: 8 }}>
           {audioError ? (
@@ -390,6 +410,7 @@ export default function ConfessionCard({ confession }) {
         </div>
       )}
 
+      {/* Reactions */}
       <div className="reactions-row">
         {EMOJIS.map(emoji => (
           <button
