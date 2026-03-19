@@ -1,18 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { pool } = require('../db');
 
-const audioDir = process.env.AUDIO_DIR || '/tmp/spiolo-audio';
-if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
+// ─── Supabase Storage upload ──────────────────────────────────────────────────
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://lplziafvypcdsfpbkppt.supabase.co';
+const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY;
+const BUCKET = 'audio';
 
-const storage = multer.diskStorage({
-  destination: audioDir,
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}.webm`),
+async function uploadToSupabase(buffer, filename, mimetype) {
+  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_SECRET}`,
+      'Content-Type': mimetype || 'audio/wav',
+      'x-upsert': 'true',
+    },
+    body: buffer,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase upload failed: ${err}`);
+  }
+  // URL pubblico del file
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filename}`;
+}
+
+// ─── Multer — salva in memoria (non su disco) ─────────────────────────────────
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // max 10MB
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // GET /api/confessions
 router.get('/', async (req, res) => {
@@ -68,18 +87,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/confessions
+// POST /api/confessions — upload audio su Supabase Storage
 router.post('/', upload.single('audio'), async (req, res) => {
   const { text, category } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: 'Testo mancante' });
-  if (!['love','school','secrets','funny','drama'].includes(category))
+  if (!['love', 'school', 'secrets', 'funny', 'drama'].includes(category))
     return res.status(400).json({ error: 'Categoria non valida' });
   if (text.length > 1000) return res.status(400).json({ error: 'Testo troppo lungo' });
   if (!req.file) return res.status(400).json({ error: 'Audio mancante' });
 
-  const audioUrl = `/api/audio/${req.file.filename}`;
-
   try {
+    // Genera nome file univoco
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.wav`;
+
+    // Carica su Supabase Storage (persistente, non si perde ai deploy)
+    const audioUrl = await uploadToSupabase(req.file.buffer, filename, req.file.mimetype);
+
     const result = await pool.query(
       `INSERT INTO confessions (text, category, audio_url) VALUES ($1, $2, $3) RETURNING *`,
       [text.trim(), category, audioUrl]
@@ -113,18 +136,14 @@ router.post('/:id/listen', async (req, res) => {
 });
 
 // POST /api/confessions/:id/react
-// Body: { emoji, previousEmoji? }
-// Se previousEmoji è presente, lo decrementa prima di incrementare il nuovo
 router.post('/:id/react', async (req, res) => {
   const { emoji, previousEmoji } = req.body;
   if (!emoji) return res.status(400).json({ error: 'Emoji mancante' });
 
   try {
-    let query;
-    let params;
+    let query, params;
 
     if (previousEmoji && previousEmoji !== emoji) {
-      // Cambia reazione: decrementa la vecchia, incrementa la nuova
       query = `
         UPDATE confessions
         SET reactions = jsonb_set(
@@ -136,12 +155,9 @@ router.post('/:id/react', async (req, res) => {
           ARRAY[$2],
           (COALESCE(reactions->$2,'0')::int + 1)::text::jsonb
         )
-        WHERE id = $3
-        RETURNING reactions
-      `
+        WHERE id = $3 RETURNING reactions`
       params = [previousEmoji, emoji, req.params.id]
     } else {
-      // Nuova reazione: incrementa solo quella nuova
       query = `
         UPDATE confessions
         SET reactions = jsonb_set(
@@ -149,16 +165,13 @@ router.post('/:id/react', async (req, res) => {
           ARRAY[$1],
           (COALESCE(reactions->$1,'0')::int + 1)::text::jsonb
         )
-        WHERE id = $2
-        RETURNING reactions
-      `
+        WHERE id = $2 RETURNING reactions`
       params = [emoji, req.params.id]
     }
 
-    const result = await pool.query(query, params)
+    const result = await pool.query(query, params);
     if (!result.rows.length) return res.status(404).json({ error: 'Non trovato' });
 
-    // Notifica solo per nuove reazioni (non per cambio)
     if (!previousEmoji) {
       await pool.query(
         `INSERT INTO notifications (type, confession_id, emoji, message) VALUES ('reaction', $1, $2, $3)`,
@@ -174,7 +187,6 @@ router.post('/:id/react', async (req, res) => {
 });
 
 // DELETE /api/confessions/:id/react
-// Body: { emoji } — rimuove (decrementa) una reazione
 router.delete('/:id/react', async (req, res) => {
   const { emoji } = req.body;
   if (!emoji) return res.status(400).json({ error: 'Emoji mancante' });
