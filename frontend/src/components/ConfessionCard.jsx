@@ -3,6 +3,7 @@ import { api } from '../api/client'
 
 const CAT_IT = { love: 'Amore', school: 'Scuola', secrets: 'Segreti', funny: 'Buffo', drama: 'Drama' }
 const EMOJIS = ['😈', '😂', '💀', '🔥', '💬', '😮']
+const REVEAL_THRESHOLD = 0.80
 
 function formatTime(s) {
   if (!s || isNaN(s)) return '0:00'
@@ -19,10 +20,33 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}g fa`
 }
 
-// ─── Testo censurato: barre animate che pulsano ───────────────────────────────
-function CensoredText({ text }) {
+// ─── Testo censurato con animazione dissolvi ──────────────────────────────────
+function CensoredText({ text, progress, revealed }) {
   if (!text) return null
   const words = text.split(' ')
+
+  if (revealed) {
+    // Testo completamente sbloccato — ogni parola appare con fade + slide
+    return (
+      <div className="revealed-text-container">
+        {words.map((word, i) => (
+          <span
+            key={i}
+            className="revealed-word-final"
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            {word}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  // Censura con dissolvi graduale vicino alla soglia
+  // Sotto 70%: tutto censurato
+  // 70-80%: le barre iniziano a scolorire (opacity scende)
+  const fadeRatio = progress < 0.70 ? 0 : Math.min(1, (progress - 0.70) / 0.10)
+
   return (
     <div className="censored-bars">
       {words.map((word, i) => (
@@ -31,7 +55,11 @@ function CensoredText({ text }) {
           className="censored-bar"
           style={{
             width: `${Math.max(24, word.length * 9)}px`,
-            animationDelay: `${(i * 137) % 900}ms`, // offset sfasato per ogni barra
+            animationDelay: `${(i * 137) % 900}ms`,
+            // Le barre svaniscono gradualmente avvicinandosi alla soglia
+            opacity: 1 - fadeRatio * 0.7,
+            filter: fadeRatio > 0 ? `blur(${fadeRatio * 2}px)` : 'none',
+            transition: 'opacity 0.3s ease, filter 0.3s ease',
           }}
         />
       ))}
@@ -148,6 +176,8 @@ export default function ConfessionCard({ confession }) {
   const [analyser, setAnalyser] = useState(null)
   const [myReaction, setMyReaction] = useState(() => getSavedReaction(confession.id))
   const [reacting, setReacting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const listenedRef = useRef(false)
 
   const audioRef = useRef(null)
   const audioCtxRef = useRef(null)
@@ -158,7 +188,23 @@ export default function ConfessionCard({ confession }) {
       : `${BASE}${confession.audioUrl}`
     : null
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const progress = duration > 0 ? currentTime / duration : 0
+  const progressPct = Math.round(progress * 100)
+  const showUnlockProgress = !revealed && progressPct > 0 && progressPct < 80
+
+  function handleTimeUpdate() {
+    if (!audioRef.current) return
+    const current = audioRef.current.currentTime
+    const dur = audioRef.current.duration
+    setCurrentTime(current)
+    if (dur > 0 && current / dur >= REVEAL_THRESHOLD && !revealed) {
+      setRevealed(true)
+      if (!listenedRef.current) {
+        listenedRef.current = true
+        api.confessions.listen(confession.id).catch(() => {})
+      }
+    }
+  }
 
   function handleMetadata() {
     if (audioRef.current) setDuration(audioRef.current.duration)
@@ -189,6 +235,25 @@ export default function ConfessionCard({ confession }) {
       audioRef.current.play().catch(() => {})
       setPlaying(true)
     }
+  }
+
+  // ─── Condivisione ─────────────────────────────────────────────────────────
+  function handleShare() {
+    const url = `${window.location.origin}/spiola/${confession.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      // Fallback per browser che non supportano clipboard API
+      const el = document.createElement('input')
+      el.value = url
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   async function handleReact(emoji) {
@@ -237,17 +302,39 @@ export default function ConfessionCard({ confession }) {
         <span className="category-badge">
           {CAT_IT[confession.category] || confession.category}
         </span>
-        <span className="card-time">{timeAgo(confession.createdAt)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Bottone condivisione */}
+          <button
+            onClick={handleShare}
+            title="Copia link"
+            style={{
+              background: 'none', border: 'none',
+              color: copied ? 'var(--accent)' : 'var(--text-gray)',
+              cursor: 'pointer', fontSize: '0.8rem',
+              fontFamily: 'var(--font-mono)',
+              opacity: 0.7, transition: 'color 0.2s, opacity 0.2s',
+              padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            {copied ? '✓ copiato' : '⬡ condividi'}
+          </button>
+          <span className="card-time">{timeAgo(confession.createdAt)}</span>
+        </div>
       </div>
 
+      {/* Testo con animazione reveal */}
       <div className="card-text">
-        {revealed ? (
-          <span className="revealed-text">{confession.text}</span>
-        ) : (
-          <>
-            <CensoredText text={confession.text} />
-            <div className="unlock-hint">🔒 ASCOLTA PER SBLOCCARE</div>
-          </>
+        <CensoredText
+          text={confession.text}
+          progress={progress}
+          revealed={revealed}
+        />
+        {!revealed && (
+          <div className="unlock-hint">
+            {showUnlockProgress
+              ? `🔓 ${progressPct}% — continua ad ascoltare`
+              : '🔒 ASCOLTA PER SBLOCCARE'}
+          </div>
         )}
       </div>
 
@@ -264,11 +351,14 @@ export default function ConfessionCard({ confession }) {
                 src={audioSrc}
                 crossOrigin="anonymous"
                 onLoadedMetadata={handleMetadata}
-                onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+                onTimeUpdate={handleTimeUpdate}
                 onEnded={() => {
                   setPlaying(false)
                   setRevealed(true)
-                  api.confessions.listen(confession.id).catch(() => {})
+                  if (!listenedRef.current) {
+                    listenedRef.current = true
+                    api.confessions.listen(confession.id).catch(() => {})
+                  }
                 }}
                 onError={() => setAudioError(true)}
                 preload="metadata"
@@ -280,7 +370,15 @@ export default function ConfessionCard({ confession }) {
                 </button>
                 <div className="audio-track" style={{ flex: 1 }}>
                   <div className="progress-container">
-                    <div className="progress-bar" style={{ width: `${progress}%` }} />
+                    <div className="progress-bar" style={{ width: `${progress * 100}%` }} />
+                    {!revealed && (
+                      <div style={{
+                        position: 'absolute', top: 0, left: '80%',
+                        width: 2, height: '100%',
+                        background: 'rgba(255,255,255,0.25)',
+                        borderRadius: 1,
+                      }} />
+                    )}
                   </div>
                   <div className="time-display">
                     {formatTime(currentTime)} / {formatTime(duration)}
