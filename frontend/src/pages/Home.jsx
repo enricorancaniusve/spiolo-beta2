@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
 
@@ -12,6 +12,33 @@ const CAT_DATA = [
 ]
 
 const PAGE_SIZE = 10
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+// ─── Icona persone SVG ────────────────────────────────────────────────────────
+const PeopleIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ flexShrink: 0 }}>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+)
+
+// ─── Device ID anonimo ────────────────────────────────────────────────────────
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem('spiolo_device_id')
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+      localStorage.setItem('spiolo_device_id', id)
+    }
+    return id
+  } catch {
+    return 'dev_anonymous'
+  }
+}
 
 export default function Home({ showCompose, setShowCompose }) {
   const [confessions, setConfessions] = useState([])
@@ -19,10 +46,32 @@ export default function Home({ showCompose, setShowCompose }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [category, setCategory] = useState(null)
   const [stats, setStats] = useState({ total: 0, today: 0 })
+  const [online, setOnline] = useState(1)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [visible, setVisible] = useState(false)
+  const pingRef = useRef(null)
 
+  // ─── Ping presenza online ───────────────────────────────────────────────────
+  async function ping() {
+    try {
+      const res = await fetch(`${BASE}/api/ping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: getDeviceId() }),
+      })
+      const data = await res.json()
+      setOnline(data.online || 1)
+    } catch {}
+  }
+
+  useEffect(() => {
+    ping() // ping immediato all'apertura
+    pingRef.current = setInterval(ping, 30_000) // poi ogni 30s
+    return () => clearInterval(pingRef.current)
+  }, [])
+
+  // ─── Carica feed ─────────────────────────────────────────────────────────────
   useEffect(() => {
     let isMounted = true
     setVisible(false)
@@ -78,9 +127,18 @@ export default function Home({ showCompose, setShowCompose }) {
       <header className="app-header">
         <h1 className="page-title">Lo Spiolo</h1>
         <p className="page-subtitle">Non si vede ma c'è. Appostato. In ascolto. Pronto a raccontare.</p>
+
         <div className="stats-row">
           Spiólate totali: <b>{(stats.total || 0).toLocaleString('it-IT')}</b>. Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b>
         </div>
+
+        {/* Contatore online */}
+        <div className="online-row">
+          <PeopleIcon />
+          <span>Spioli online:</span>
+          <b className="online-count">{online}</b>
+        </div>
+
         <div className="taxonomy-label">
           <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
           <p className="taxonomy-text">
