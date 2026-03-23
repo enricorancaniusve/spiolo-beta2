@@ -19,7 +19,7 @@ body {
   display: flex; justify-content: center;
   min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
-#root { width: 100%; max-width: 600px; padding: 40px 20px; position: relative; }
+#root { width: 100%; max-width: 600px; padding: 40px 20px; }
 
 /* --- NAV --- */
 nav.main-nav {
@@ -63,27 +63,14 @@ button.btn-primary:hover { transform: translateY(-2px); background: #fff; }
 
 /* --- FAB --- */
 .fab-container {
-  position: fixed;
-  bottom: 32px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 1000;
-  pointer-events: none;
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%); z-index: 100;
 }
 .fab-btn {
-  pointer-events: all;
-  background: var(--text-main);
-  color: var(--bg-dark);
-  border: none;
-  padding: 16px 40px;
-  border-radius: 50px;
-  font-weight: 800;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-  letter-spacing: 0.3px;
+  background: var(--text-main); color: var(--bg-dark);
+  border: none; padding: 16px 40px; border-radius: 50px;
+  font-weight: 800; cursor: pointer; font-family: var(--font-mono);
+  font-size: 1.05rem; letter-spacing: 0.3px;
   box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
   transition: transform 0.2s, box-shadow 0.2s;
   white-space: nowrap;
@@ -439,4 +426,19 @@ button.btn-primary:hover { transform: translateY(-2px); background: #fff; }
     transform: translateY(0);
     filter: blur(0);
   }
+}
+
+/* --- CONTATORE ONLINE --- */
+.online-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-gray);
+  margin-bottom: 8px;
+}
+.online-count {
+  color: #4ade80;
+  font-weight: 700;
 }
