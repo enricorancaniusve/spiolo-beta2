@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 const { initDB } = require('./db');
 
 const app = express();
@@ -19,7 +17,32 @@ app.use('/api/audio', express.static(audioDir));
 app.use('/api/confessions', require('./routes/confessions'));
 app.use('/api/notifications', require('./routes/notifications'));
 
-// Stats
+// ─── Presenza online ──────────────────────────────────────────────────────────
+// Mappa device_id → timestamp ultimo ping
+const onlineUsers = new Map();
+const ONLINE_TIMEOUT_MS = 60 * 1000; // 60s senza ping = offline
+
+// Pulizia automatica ogni 30 secondi
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, ts] of onlineUsers.entries()) {
+    if (now - ts > ONLINE_TIMEOUT_MS) onlineUsers.delete(id);
+  }
+}, 30_000);
+
+// POST /api/ping — il frontend chiama questo ogni 30s
+app.post('/api/ping', (req, res) => {
+  const { device_id } = req.body;
+  if (device_id) onlineUsers.set(device_id, Date.now());
+  res.json({ online: onlineUsers.size });
+});
+
+// GET /api/online — numero utenti online
+app.get('/api/online', (req, res) => {
+  res.json({ online: onlineUsers.size });
+});
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
 app.get('/api/stats', async (req, res) => {
   const { pool } = require('./db');
   const r = await pool.query(`
