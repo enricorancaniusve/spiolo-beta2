@@ -150,7 +150,7 @@ nav.main-nav {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.2) 100%);
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.35) 100%);
   pointer-events: none;
   z-index: 1;
 }
