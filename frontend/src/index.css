@@ -1,17 +1,17 @@
 /* RESET */
 html, body {
-  background-color: #2e6640 !important;
+  /* Viola come sfondo globale — appare ai lati quando il cespuglio si stringe */
+  background-color: #341d56 !important;
   color: #f0f0e8 !important;
   margin: 0;
   padding: 0;
 }
 
 :root {
-  --bg-dark: #1a3d22;
+  --bg-purple: #341d56;
   --bush-green: #2e6640;
   --bush-dark: #1e4a28;
   --card-hole: #0f3d18;
-  --border-leaf: #1e4a28;
   --text-main: #f0f0e8;
   --text-gray: #a0c8a0;
   --accent: #f5d800;
@@ -28,36 +28,57 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#root {
+/* Colonna centrale verde — massimo 600px centrata */
+#root, #app-wrapper {
   width: 100%;
   max-width: 600px;
   padding: 0;
+  /* Verde solo nella colonna centrale */
+  background: var(--bush-green);
 }
 
-/* ── NAV ──────────────────────────────────────────────────────────────── */
+/* ── NAV — trasparente con sfondo viola ───────────────────────────────── */
 nav.main-nav {
   display: flex;
-  justify-content: center;
-  gap: 30px;
-  padding: 14px 20px 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.2);
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(30, 74, 40, 0.92);
-  backdrop-filter: blur(10px);
+  /* Viola trasparente — si fonde con lo sfondo SVG */
+  background: rgba(52, 29, 86, 0.88);
+  backdrop-filter: blur(12px);
 }
-nav.main-nav a {
+
+/* Logo "Lo Spiolo" a sinistra */
+.nav-logo {
+  font-family: var(--font-fancy);
+  font-size: 1.1rem;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+/* Link nav a destra */
+.nav-links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+.nav-links a {
   color: rgba(240,240,232,0.5);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   position: relative;
   transition: color 0.2s;
 }
-nav.main-nav a:hover, nav.main-nav a.active { color: var(--text-main); }
-nav.main-nav a.active::after {
+.nav-links a:hover,
+.nav-links a.active { color: var(--text-main); }
+.nav-links a.active::after {
   content: '';
   position: absolute;
   bottom: -5px;
@@ -72,6 +93,7 @@ nav.main-nav a.active::after {
 /* ── LAYOUT ───────────────────────────────────────────────────────────── */
 .home-container { width: 100%; }
 
+/* Feed su sfondo verde cespuglio */
 .bush-feed {
   background: var(--bush-green);
   min-height: 100vh;
@@ -162,8 +184,6 @@ nav.main-nav a.active::after {
   margin-bottom: 20px;
   position: relative;
   color: var(--text-main);
-
-  /* Forma organica — bordi ondulati su tutti i lati */
   clip-path: polygon(
     2% 4%, 5% 1%, 10% 3%, 16% 0%, 22% 2%, 28% 0%, 34% 2%, 40% 0%, 46% 2%, 52% 0%,
     58% 2%, 64% 0%, 70% 2%, 76% 0%, 82% 2%, 88% 0%, 93% 2%, 97% 1%, 100% 4%,
@@ -175,8 +195,6 @@ nav.main-nav a.active::after {
     1% 93%, 0% 86%, 1% 79%, 0% 72%, 1% 65%, 0% 58%, 1% 51%, 0% 44%,
     1% 37%, 0% 30%, 1% 23%, 0% 16%, 1% 9%
   );
-
-  /* Ombra che funziona con clip-path */
   filter: drop-shadow(0 6px 18px rgba(0,0,0,0.45));
 }
 
@@ -356,11 +374,11 @@ nav.main-nav a.active::after {
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 0 0 3px rgba(46,102,64,0.4);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   transition: transform 0.2s, box-shadow 0.2s;
   white-space: nowrap;
 }
-.fab-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.45); }
+.fab-btn:hover { transform: translateY(-3px); }
 
 /* ── MODAL ────────────────────────────────────────────────────────────── */
 .modal-overlay {
@@ -376,7 +394,6 @@ nav.main-nav a.active::after {
   animation: overlayIn 0.2s ease;
 }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-
 .modal-box {
   position: relative;
   width: 100%;
@@ -596,8 +613,6 @@ nav.main-nav a.active::after {
 .page-subtitle { color: rgba(255,255,255,0.6); font-style: italic; font-size: 0.88rem; padding: 0 20px 16px; }
 .loading { text-align: center; color: rgba(255,255,255,0.6); padding: 40px 0; }
 .empty-state { text-align: center; color: rgba(255,255,255,0.6); padding: 40px 20px; line-height: 1.8; }
-
-#app-wrapper { padding: 0 20px; }
 
 /* ── ANIMATIONS ───────────────────────────────────────────────────────── */
 @keyframes spioloSpin {
