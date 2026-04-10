@@ -128,7 +128,7 @@ nav.main-nav {
 .confession-card {
   background: var(--card-hole);
   padding: 28px 24px;
-  margin-bottom: 52px;
+  margin-bottom: 75px;
   position: relative;
   color: var(--text-main);
   clip-path: polygon(
