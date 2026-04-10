@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-cespuglio.jpeg'
+import spioloImg from '../spiolo-main.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -14,11 +14,6 @@ const CAT_DATA = [
 
 const PAGE_SIZE = 10
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
-// Altezza dell'immagine ancorata in alto (20% viewport)
-const ANCHORED_HEIGHT = Math.round(window.innerHeight * 0.22)
-// Altezza iniziale dell'immagine (100% viewport)
-const FULL_HEIGHT = window.innerHeight
 
 function getDeviceId() {
   try {
@@ -52,29 +47,24 @@ export default function Home({ showCompose, setShowCompose }) {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [visible, setVisible] = useState(false)
-
-  // Stato parallax
-  const [imgHeight, setImgHeight] = useState(FULL_HEIGHT)
-  const [isAnchored, setIsAnchored] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
   const pingRef = useRef(null)
 
-  // Parallax scroll — l'immagine si rimpicciolisce fino ad ANCHORED_HEIGHT
+  // Calcola dimensioni in base al viewport
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+  const FULL_HEIGHT = vh         // altezza iniziale = 100vh
+  const SMALL_HEIGHT = Math.round(vh * 0.25) // altezza finale = 25vh
+  const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT // quanto scrollare per completare la transizione
+
+  // Altezza corrente dell'immagine
+  const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
+  const isAnchored = scrollY >= SCROLL_RANGE
+  const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE) // 0→1
+
   useEffect(() => {
-    const scrollRange = FULL_HEIGHT - ANCHORED_HEIGHT
-
     function handleScroll() {
-      const scrollY = window.scrollY
-      if (scrollY >= scrollRange) {
-        // Ancorata — altezza fissa
-        setImgHeight(ANCHORED_HEIGHT)
-        setIsAnchored(true)
-      } else {
-        // In transizione — altezza proporzionale allo scroll
-        setImgHeight(FULL_HEIGHT - scrollY)
-        setIsAnchored(false)
-      }
+      setScrollY(window.scrollY)
     }
-
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -150,27 +140,67 @@ export default function Home({ showCompose, setShowCompose }) {
   return (
     <div className="home-container">
 
-      {/* ── SPIOLO — sticky, si rimpicciolisce scrollando ─────────────── */}
+      {/* ── SPIOLO STICKY ────────────────────────────────────────────── */}
       <div
-        className={`spiolo-sticky${isAnchored ? ' anchored' : ''}`}
-        style={{ height: imgHeight }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: 600,
+          height: currentHeight,
+          zIndex: 10,
+          overflow: 'hidden',
+          background: '#341d56',
+          // Ombra appare solo quando è ancorata
+          boxShadow: isAnchored ? '0 4px 24px rgba(0,0,0,0.7)' : 'none',
+          transition: 'box-shadow 0.3s ease',
+        }}
       >
-        <img src={spioloImg} alt="Lo Spiolo" className="spiolo-sticky-img" />
+        {/* SVG — si scala senza tagliare usando width/height 100% */}
+        <img
+          src={spioloImg}
+          alt="Lo Spiolo"
+          style={{
+            width: '100%',
+            height: '100%',
+            // contain = mostra tutto senza tagliare
+            objectFit: 'contain',
+            objectPosition: 'center bottom',
+            display: 'block',
+          }}
+        />
 
-        {/* Stats — appare quando è ancorata */}
-        <div
-          className="spiolo-stats"
-          style={{ opacity: isAnchored ? 1 : 0, pointerEvents: isAnchored ? 'all' : 'none' }}
-        >
-          <span>Spiólate: <b>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
-          <div className="online-row">
+        {/* Stats — appaiono gradualmente quando si rimpicciolisce */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(6,20,6,0.88)',
+          borderTop: '1px solid #1e4a1e',
+          padding: '7px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 4,
+          fontSize: '0.74rem',
+          color: '#6a9a6a',
+          opacity: transitionProgress,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: transitionProgress > 0.5 ? 'all' : 'none',
+        }}>
+          <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <PeopleIcon />
-            <span>Online: <b className="online-count">{online}</b></span>
+            <span>Online: <b style={{ color: '#4ade80' }}>{online}</b></span>
           </div>
         </div>
       </div>
 
-      {/* Spacer — occupa lo spazio iniziale dell'immagine grande */}
+      {/* Spacer — spinge il contenuto sotto l'immagine grande iniziale */}
       <div style={{ height: FULL_HEIGHT }} />
 
       {/* ── FEED ─────────────────────────────────────────────────────── */}
@@ -220,7 +250,6 @@ export default function Home({ showCompose, setShowCompose }) {
           )}
         </section>
       </div>
-
     </div>
   )
 }
