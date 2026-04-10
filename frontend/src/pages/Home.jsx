@@ -37,28 +37,37 @@ const PeopleIcon = () => (
   </svg>
 )
 
-// Bordo cespuglio SVG — continuazione organica del cespuglio dell'immagine
+// Bordo cespuglio — parte da x=0 pieno, arriva a x=600 pieno
+// Le ondulazioni organiche stanno solo nella fascia centrale superiore
 const BushEdge = () => (
-  <svg viewBox="0 0 600 50" xmlns="http://www.w3.org/2000/svg"
+  <svg
+    viewBox="0 0 600 70"
+    xmlns="http://www.w3.org/2000/svg"
     style={{ display: 'block', width: '100%' }}
-    preserveAspectRatio="none">
+    preserveAspectRatio="none"
+  >
     <path
-      d="M0,50 L0,32
-        C20,14 38,8 55,16
-        C68,22 78,10 92,4
-        C104,0 118,8 130,18
-        C142,28 154,10 168,4
-        C180,0 194,10 208,20
-        C220,30 232,12 248,6
-        C262,0 276,12 290,22
-        C304,32 316,14 332,6
-        C346,0 360,12 374,22
-        C388,32 400,14 416,8
-        C430,2 444,14 458,24
-        C472,34 484,16 500,8
-        C514,2 528,14 542,22
-        C556,30 568,14 584,8 L600,12
-        L600,50 Z"
+      d="
+        M0,70
+        L0,0
+        C0,0 10,18 22,26
+        C34,34 46,22 60,14
+        C72,6 86,16 100,26
+        C114,36 126,16 142,8
+        C156,0 170,14 185,24
+        C198,34 212,16 228,8
+        C242,0 258,14 274,26
+        C290,38 304,18 320,10
+        C336,2 350,16 366,26
+        C380,36 394,18 410,10
+        C424,2 438,16 454,26
+        C468,36 480,20 496,12
+        C510,4 524,18 540,28
+        C554,36 568,20 584,12
+        C592,8 597,10 600,14
+        L600,70
+        Z
+      "
       fill="#2e6640"
     />
   </svg>
@@ -83,7 +92,6 @@ export default function Home({ showCompose, setShowCompose }) {
   const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
-  const isAnchored = scrollY >= SCROLL_RANGE
 
   useEffect(() => {
     function handleScroll() { setScrollY(window.scrollY) }
@@ -151,9 +159,8 @@ export default function Home({ showCompose, setShowCompose }) {
     finally { setLoadingMore(false) }
   }
 
-  // Logo grande centrato all'apertura, scompare scrollando
   const bigLogoOpacity = Math.max(0, 1 - transitionProgress * 2)
-  const bigLogoSize = 3.2 - transitionProgress * 1.5 // 3.2rem → 1.7rem poi scompare
+  const bigLogoSize = 3.2 - transitionProgress * 1.5
 
   return (
     <div className="home-container">
@@ -183,7 +190,7 @@ export default function Home({ showCompose, setShowCompose }) {
           }}
         />
 
-        {/* Logo grande — sopra la testa, scompare scrollando */}
+        {/* Logo grande sopra la testa — scompare scrollando */}
         <div style={{
           position: 'absolute',
           top: '18%',
@@ -204,7 +211,7 @@ export default function Home({ showCompose, setShowCompose }) {
           </span>
         </div>
 
-        {/* Stats — sopra il bordo cespuglio, appaiono scrollando */}
+        {/* Stats in basso — appaiono scrollando */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -221,7 +228,6 @@ export default function Home({ showCompose, setShowCompose }) {
           color: '#6a9a6a',
           opacity: transitionProgress,
           pointerEvents: transitionProgress > 0.5 ? 'all' : 'none',
-          transition: 'opacity 0.1s',
         }}>
           <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -234,9 +240,8 @@ export default function Home({ showCompose, setShowCompose }) {
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
 
-      {/* ── BORDO CESPUGLIO — immediatamente sotto l'immagine ─────────
-          Sfondo viola dietro, cespuglio verde che emerge */}
-      <div style={{ background: '#341d56', marginTop: 0 }}>
+      {/* ── BORDO CESPUGLIO — su sfondo viola, copre tutta la larghezza ── */}
+      <div style={{ background: '#341d56' }}>
         <BushEdge />
       </div>
 
