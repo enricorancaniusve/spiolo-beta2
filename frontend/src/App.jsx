@@ -10,35 +10,38 @@ export default function App() {
   const [showCompose, setShowCompose] = useState(false)
   const location = useLocation()
 
-  // Blocca scroll quando modal aperto
   useEffect(() => {
     document.body.style.overflow = showCompose ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [showCompose])
 
-  // Mostra FAB solo nella home e nel trending (non nella pagina singola)
   const showFab = location.pathname === '/' || location.pathname === '/trending'
 
   return (
     <>
       <div id="app-wrapper">
+        {/* NAV con logo */}
         <nav className="main-nav">
-          <NavLink to="/" end>Feed</NavLink>
-          <NavLink to="/trending">Trending</NavLink>
-          <NavLink to="/notifications">Notifiche</NavLink>
+          <span className="nav-logo">Lo Spiolo</span>
+          <div className="nav-links">
+            <NavLink to="/" end>Feed</NavLink>
+            <NavLink to="/trending">Trending</NavLink>
+            <NavLink to="/notifications">Notifiche</NavLink>
+          </div>
         </nav>
+
         <Routes>
           <Route path="/" element={<Home showCompose={showCompose} setShowCompose={setShowCompose} />} />
           <Route path="/trending" element={<Trending />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/spiola/:id" element={<SpiolaDetail />} />
         </Routes>
+
         <footer style={{ textAlign: 'center', marginTop: 80, padding: 30, opacity: 0.3, fontSize: '0.7rem' }}>
           SPIOLO — Spiolus paparazzus — 2026
         </footer>
       </div>
 
-      {/* FAB fuori da #root — così position:fixed funziona rispetto alla viewport */}
       {showFab && (
         <div className="fab-container">
           <button className="fab-btn" onClick={() => setShowCompose(v => !v)}>
@@ -47,7 +50,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal compose — anch'esso fuori da #root */}
       {showCompose && (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCompose(false) }}>
           <div className="modal-box">
