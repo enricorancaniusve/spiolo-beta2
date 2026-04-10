@@ -176,14 +176,14 @@ export default function Home({ showCompose, setShowCompose }) {
           </span>
         </div>
 
-        {/* Sfumatura in basso — dissolve l'immagine nel verde del feed */}
+        {/* Sfumatura ridotta — solo 20% di altezza e opacità bassa */}
         <div style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          height: '35%',
-          background: 'linear-gradient(to bottom, transparent, #2e6640)',
+          height: '20%',
+          background: 'linear-gradient(to bottom, transparent, rgba(46,102,64,0.7))',
           pointerEvents: 'none',
         }} />
       </div>
@@ -194,7 +194,7 @@ export default function Home({ showCompose, setShowCompose }) {
       {/* ── FEED ─────────────────────────────────────────────────────── */}
       <div className="bush-feed">
 
-        {/* Stats nel feed — scorrono con le card */}
+        {/* Stats nel feed */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
