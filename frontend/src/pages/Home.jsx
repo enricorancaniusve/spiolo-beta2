@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-main2.svg'
+import spioloImg from '../spiolo-main.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -37,59 +37,29 @@ const PeopleIcon = () => (
   </svg>
 )
 
-// Bordo superiore del cespuglio — SVG organico inline
+// Bordo cespuglio SVG — continuazione organica del cespuglio dell'immagine
 const BushEdge = () => (
-  <svg
-    viewBox="0 0 600 60"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ display: 'block', width: '100%', marginTop: -2 }}
-    preserveAspectRatio="none"
-  >
+  <svg viewBox="0 0 600 50" xmlns="http://www.w3.org/2000/svg"
+    style={{ display: 'block', width: '100%' }}
+    preserveAspectRatio="none">
     <path
-      d="M0,60 L0,38
-        C15,22 28,14 42,20
-        C52,26 60,18 72,10
-        C82,3 95,8 105,16
-        C115,24 125,12 138,6
-        C150,0 162,8 172,18
-        C182,28 192,14 205,8
-        C217,2 228,10 240,20
-        C252,30 262,12 275,6
-        C287,0 298,10 310,22
-        C322,34 332,16 345,8
-        C357,0 368,12 380,22
-        C392,32 402,14 415,8
-        C427,2 438,14 450,24
-        C462,34 472,18 485,10
-        C497,2 510,12 522,22
-        C534,32 545,16 558,10
-        C568,5 580,14 600,28
-        L600,60 Z"
+      d="M0,50 L0,32
+        C20,14 38,8 55,16
+        C68,22 78,10 92,4
+        C104,0 118,8 130,18
+        C142,28 154,10 168,4
+        C180,0 194,10 208,20
+        C220,30 232,12 248,6
+        C262,0 276,12 290,22
+        C304,32 316,14 332,6
+        C346,0 360,12 374,22
+        C388,32 400,14 416,8
+        C430,2 444,14 458,24
+        C472,34 484,16 500,8
+        C514,2 528,14 542,22
+        C556,30 568,14 584,8 L600,12
+        L600,50 Z"
       fill="#2e6640"
-      stroke="#1a3d22"
-      strokeWidth="2.5"
-    />
-    {/* Qualche ciuffo extra per più organicità */}
-    <path
-      d="M30,36 C36,28 44,24 50,30 C56,36 62,26 70,22 C76,18 84,26 90,34"
-      fill="none"
-      stroke="#1a3d22"
-      strokeWidth="1.5"
-      opacity="0.4"
-    />
-    <path
-      d="M280,20 C286,14 294,10 302,16 C310,22 318,12 328,8 C336,4 344,14 352,20"
-      fill="none"
-      stroke="#1a3d22"
-      strokeWidth="1.5"
-      opacity="0.4"
-    />
-    <path
-      d="M480,18 C488,10 496,8 504,14 C512,20 520,10 530,8 C540,6 548,16 556,22"
-      fill="none"
-      stroke="#1a3d22"
-      strokeWidth="1.5"
-      opacity="0.4"
     />
   </svg>
 )
@@ -112,8 +82,8 @@ export default function Home({ showCompose, setShowCompose }) {
   const SMALL_HEIGHT = Math.round(vh * 0.25)
   const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
-  const isAnchored = scrollY >= SCROLL_RANGE
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
+  const isAnchored = scrollY >= SCROLL_RANGE
 
   useEffect(() => {
     function handleScroll() { setScrollY(window.scrollY) }
@@ -143,9 +113,7 @@ export default function Home({ showCompose, setShowCompose }) {
     let isMounted = true
     setVisible(false)
     async function fetchData() {
-      setLoading(true)
-      setPage(1)
-      setHasMore(true)
+      setLoading(true); setPage(1); setHasMore(true)
       try {
         const params = { limit: PAGE_SIZE, page: 1 }
         if (category) params.category = category
@@ -160,11 +128,8 @@ export default function Home({ showCompose, setShowCompose }) {
           const s = await api.stats()
           if (isMounted && s) setStats({ total: s.confessions_posted || 0, today: s.today || 0 })
         } catch {}
-      } catch (e) {
-        console.error('Errore Home:', e)
-      } finally {
-        if (isMounted) setLoading(false)
-      }
+      } catch (e) { console.error(e) }
+      finally { if (isMounted) setLoading(false) }
     }
     fetchData()
     return () => { isMounted = false }
@@ -182,38 +147,30 @@ export default function Home({ showCompose, setShowCompose }) {
       setConfessions(prev => [...prev, ...newList])
       setPage(nextPage)
       setHasMore(newList.length === PAGE_SIZE)
-    } catch (e) {
-      console.error('Errore loadMore:', e)
-    } finally {
-      setLoadingMore(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setLoadingMore(false) }
   }
 
-  // Logo: grande e centrato all'inizio, piccolo e a sinistra scrollando
-  // transitionProgress 0 = inizio, 1 = ancorato
-  const logoFontSize = 3.5 - transitionProgress * 2.4  // da 3.5rem a 1.1rem
-  const logoOpacityBig = 1 - transitionProgress * 1.5   // sparisce presto
-  const logoBottom = Math.max(20, 60 - transitionProgress * 40) // posizione verticale nell'immagine
+  // Logo grande centrato all'apertura, scompare scrollando
+  const bigLogoOpacity = Math.max(0, 1 - transitionProgress * 2)
+  const bigLogoSize = 3.2 - transitionProgress * 1.5 // 3.2rem → 1.7rem poi scompare
 
   return (
     <div className="home-container">
 
       {/* ── SPIOLO STICKY ────────────────────────────────────────────── */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: 600,
-          height: currentHeight,
-          zIndex: 10,
-          overflow: 'hidden',
-          background: '#341d56',
-          // Nessuna box-shadow sull'immagine
-        }}
-      >
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: 600,
+        height: currentHeight,
+        zIndex: 10,
+        overflow: 'hidden',
+        background: '#341d56',
+      }}>
         <img
           src={spioloImg}
           alt="Lo Spiolo"
@@ -226,48 +183,45 @@ export default function Home({ showCompose, setShowCompose }) {
           }}
         />
 
-        {/* "Lo Spiolo" — grande e centrato all'inizio, scompare scrollando
-            (la versione nella nav prende il suo posto) */}
+        {/* Logo grande — sopra la testa, scompare scrollando */}
         <div style={{
           position: 'absolute',
-          bottom: logoBottom,
+          top: '18%',
           left: 0,
           right: 0,
           textAlign: 'center',
-          opacity: Math.max(0, logoOpacityBig),
+          opacity: bigLogoOpacity,
           pointerEvents: 'none',
-          transition: 'none',
         }}>
           <span style={{
             fontFamily: 'Fraunces, serif',
-            fontSize: `${logoFontSize}rem`,
+            fontSize: `${bigLogoSize}rem`,
             color: '#fff',
-            letterSpacing: '-1px',
-            textShadow: '0 2px 20px rgba(0,0,0,0.6)',
-            display: 'inline-block',
+            letterSpacing: '-0.5px',
+            textShadow: '0 2px 24px rgba(0,0,0,0.5)',
           }}>
             Lo Spiolo
           </span>
         </div>
 
-        {/* Stats — appaiono quando ancorata */}
+        {/* Stats — sopra il bordo cespuglio, appaiono scrollando */}
         <div style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          background: 'rgba(6,20,6,0.88)',
+          background: 'rgba(10,30,10,0.85)',
           borderTop: '1px solid #1e4a28',
           padding: '7px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
           gap: 4,
           fontSize: '0.74rem',
           color: '#6a9a6a',
           opacity: transitionProgress,
           pointerEvents: transitionProgress > 0.5 ? 'all' : 'none',
+          transition: 'opacity 0.1s',
         }}>
           <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -280,8 +234,9 @@ export default function Home({ showCompose, setShowCompose }) {
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
 
-      {/* ── BORDO CESPUGLIO ──────────────────────────────────────────── */}
-      <div style={{ background: '#341d56', marginTop: -1 }}>
+      {/* ── BORDO CESPUGLIO — immediatamente sotto l'immagine ─────────
+          Sfondo viola dietro, cespuglio verde che emerge */}
+      <div style={{ background: '#341d56', marginTop: 0 }}>
         <BushEdge />
       </div>
 
@@ -312,9 +267,7 @@ export default function Home({ showCompose, setShowCompose }) {
             <div className="feed-loading">Intercettando segreti…</div>
           ) : (
             <>
-              {confessions.length === 0 && (
-                <div className="feed-empty">Nessun segreto qui.</div>
-              )}
+              {confessions.length === 0 && <div className="feed-empty">Nessun segreto qui.</div>}
               {confessions.map((c, i) => (
                 <div key={c.id} className="card-fadein" style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}>
                   <ConfessionCard confession={c} />
