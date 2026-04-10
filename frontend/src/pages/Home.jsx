@@ -15,6 +15,11 @@ const CAT_DATA = [
 const PAGE_SIZE = 10
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
+// Altezza dell'immagine ancorata in alto (20% viewport)
+const ANCHORED_HEIGHT = Math.round(window.innerHeight * 0.22)
+// Altezza iniziale dell'immagine (100% viewport)
+const FULL_HEIGHT = window.innerHeight
+
 function getDeviceId() {
   try {
     let id = localStorage.getItem('spiolo_device_id')
@@ -48,36 +53,32 @@ export default function Home({ showCompose, setShowCompose }) {
   const [hasMore, setHasMore] = useState(true)
   const [visible, setVisible] = useState(false)
 
-  // Parallax: scala e offset della hero image in base allo scroll
-  const [heroScale, setHeroScale] = useState(1)
-  const [heroOpacity, setHeroOpacity] = useState(1)
-  const [showBush, setShowBush] = useState(false)
-  const heroRef = useRef(null)
+  // Stato parallax
+  const [imgHeight, setImgHeight] = useState(FULL_HEIGHT)
+  const [isAnchored, setIsAnchored] = useState(false)
   const pingRef = useRef(null)
 
-  // Parallax scroll handler
+  // Parallax scroll — l'immagine si rimpicciolisce fino ad ANCHORED_HEIGHT
   useEffect(() => {
+    const scrollRange = FULL_HEIGHT - ANCHORED_HEIGHT
+
     function handleScroll() {
       const scrollY = window.scrollY
-      const heroHeight = heroRef.current?.offsetHeight || 500
-
-      // Scala da 1 a 0.6 man mano che scrolli
-      const scale = Math.max(0.55, 1 - (scrollY / heroHeight) * 0.5)
-      // Opacità da 1 a 0 entro metà hero
-      const opacity = Math.max(0, 1 - (scrollY / (heroHeight * 0.6)))
-      // Mostra scritta "cespuglio" dopo un po' di scroll
-      const bush = scrollY > heroHeight * 0.15
-
-      setHeroScale(scale)
-      setHeroOpacity(opacity)
-      setShowBush(bush)
+      if (scrollY >= scrollRange) {
+        // Ancorata — altezza fissa
+        setImgHeight(ANCHORED_HEIGHT)
+        setIsAnchored(true)
+      } else {
+        // In transizione — altezza proporzionale allo scroll
+        setImgHeight(FULL_HEIGHT - scrollY)
+        setIsAnchored(false)
+      }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Ping presenza online
   async function ping() {
     try {
       const res = await fetch(`${BASE}/api/ping`, {
@@ -96,7 +97,6 @@ export default function Home({ showCompose, setShowCompose }) {
     return () => clearInterval(pingRef.current)
   }, [])
 
-  // Carica feed
   useEffect(() => {
     let isMounted = true
     setVisible(false)
@@ -150,93 +150,76 @@ export default function Home({ showCompose, setShowCompose }) {
   return (
     <div className="home-container">
 
-      {/* ── HERO SECTION ─────────────────────────────────────────────── */}
-      <div className="hero-section" ref={heroRef}>
+      {/* ── SPIOLO — sticky, si rimpicciolisce scrollando ─────────────── */}
+      <div
+        className={`spiolo-sticky${isAnchored ? ' anchored' : ''}`}
+        style={{ height: imgHeight }}
+      >
+        <img src={spioloImg} alt="Lo Spiolo" className="spiolo-sticky-img" />
 
-        {/* Immagine spiolo — si rimpicciolisce scrollando */}
+        {/* Stats — appare quando è ancorata */}
         <div
-          className="hero-image-wrapper"
-          style={{
-            transform: `scale(${heroScale})`,
-            opacity: heroOpacity,
-          }}
+          className="spiolo-stats"
+          style={{ opacity: isAnchored ? 1 : 0, pointerEvents: isAnchored ? 'all' : 'none' }}
         >
-          <img
-            src={spioloImg}
-            alt="Lo Spiolo"
-            className="hero-image"
-          />
-        </div>
-
-        {/* Overlay con titolo — appare quando scrolli */}
-        <div
-          className="hero-overlay-text"
-          style={{ opacity: showBush ? Math.min(1, (heroScale < 0.85 ? (0.85 - heroScale) * 8 : 0)) : 0 }}
-        >
-          <h1 className="hero-title">Lo Spiolo</h1>
-          <p className="hero-subtitle">Non si vede ma c'è. Appostato. In ascolto.</p>
-        </div>
-
-      </div>
-
-      {/* ── STATS + INFO ──────────────────────────────────────────────── */}
-      <div className="stats-section">
-        <div className="stats-row">
-          Spiólate totali: <b>{(stats.total || 0).toLocaleString('it-IT')}</b>. Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b>
-        </div>
-        <div className="online-row">
-          <PeopleIcon />
-          <span>Spioli online:</span>
-          <b className="online-count">{online}</b>
+          <span>Spiólate: <b>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
+          <div className="online-row">
+            <PeopleIcon />
+            <span>Online: <b className="online-count">{online}</b></span>
+          </div>
         </div>
       </div>
 
-      {/* ── TAXONOMY ─────────────────────────────────────────────────── */}
-      <div className="taxonomy-label">
-        <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
-        <p className="taxonomy-text">
-          Lo spiolo fotografa le mucche che si tolgono il reggiseno, va a spiare i fidanzamenti dei gabbiani sulla spiaggia, guarda nei frigoriferi, apre la posta, fruga nella spazzatura, sbircia dalla serratura… e poi racconta, maligno, a un altro spiolo, nella catena infinita del pettegolezzo spiolico.
-        </p>
-      </div>
-
-      {/* ── FILTRI ───────────────────────────────────────────────────── */}
-      <nav className="tabs-row">
-        {CAT_DATA.map(cat => (
-          <button
-            key={String(cat.id)}
-            className={`tab-btn ${category === cat.id ? 'active' : ''}`}
-            onClick={() => setCategory(cat.id)}
-          >
-            <span className="tab-emoji">{cat.emoji}</span>
-            <span className="tab-name">{cat.name}</span>
-          </button>
-        ))}
-      </nav>
+      {/* Spacer — occupa lo spazio iniziale dell'immagine grande */}
+      <div style={{ height: FULL_HEIGHT }} />
 
       {/* ── FEED ─────────────────────────────────────────────────────── */}
-      <section className={`feed ${visible ? 'feed-visible' : ''}`} style={{ paddingBottom: 100 }}>
-        {loading ? (
-          <div className="feed-loading">Intercettando segreti…</div>
-        ) : (
-          <>
-            {confessions.length === 0 && (
-              <div className="feed-empty">Nessun segreto qui.</div>
-            )}
-            {confessions.map((c, i) => (
-              <div key={c.id} className="card-fadein" style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}>
-                <ConfessionCard confession={c} />
-              </div>
-            ))}
-            {hasMore && !loading && (
-              <div style={{ textAlign: 'center', padding: '20px 0 40px' }}>
-                <button onClick={loadMore} disabled={loadingMore} className="load-more-btn">
-                  {loadingMore ? 'Caricamento…' : 'Carica altri segreti'}
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </section>
+      <div className="bush-feed">
+
+        <div className="taxonomy-label">
+          <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
+          <p className="taxonomy-text">
+            Lo spiolo fotografa le mucche che si tolgono il reggiseno, va a spiare i fidanzamenti dei gabbiani sulla spiaggia, guarda nei frigoriferi, apre la posta, fruga nella spazzatura, sbircia dalla serratura… e poi racconta, maligno, a un altro spiolo, nella catena infinita del pettegolezzo spiolico.
+          </p>
+        </div>
+
+        <nav className="tabs-row">
+          {CAT_DATA.map(cat => (
+            <button
+              key={String(cat.id)}
+              className={`tab-btn ${category === cat.id ? 'active' : ''}`}
+              onClick={() => setCategory(cat.id)}
+            >
+              <span className="tab-emoji">{cat.emoji}</span>
+              <span className="tab-name">{cat.name}</span>
+            </button>
+          ))}
+        </nav>
+
+        <section className={`feed ${visible ? 'feed-visible' : ''}`} style={{ paddingBottom: 100 }}>
+          {loading ? (
+            <div className="feed-loading">Intercettando segreti…</div>
+          ) : (
+            <>
+              {confessions.length === 0 && (
+                <div className="feed-empty">Nessun segreto qui.</div>
+              )}
+              {confessions.map((c, i) => (
+                <div key={c.id} className="card-fadein" style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}>
+                  <ConfessionCard confession={c} />
+                </div>
+              ))}
+              {hasMore && !loading && (
+                <div style={{ textAlign: 'center', padding: '20px 0 40px' }}>
+                  <button onClick={loadMore} disabled={loadingMore} className="load-more-btn">
+                    {loadingMore ? 'Caricamento…' : 'Carica altri segreti'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      </div>
 
     </div>
   )
