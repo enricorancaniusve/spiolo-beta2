@@ -175,12 +175,23 @@ export default function Home({ showCompose, setShowCompose }) {
             Lo Spiolo
           </span>
         </div>
+
+        {/* Sfumatura in basso — dissolve l'immagine nel verde del feed */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '35%',
+          background: 'linear-gradient(to bottom, transparent, #2e6640)',
+          pointerEvents: 'none',
+        }} />
       </div>
 
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
 
-      {/* ── FEED — tutto scorre normalmente ──────────────────────────── */}
+      {/* ── FEED ─────────────────────────────────────────────────────── */}
       <div className="bush-feed">
 
         {/* Stats nel feed — scorrono con le card */}
@@ -197,7 +208,7 @@ export default function Home({ showCompose, setShowCompose }) {
           gap: 6,
         }}>
           <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <PeopleIcon />
             <span>Online: <b style={{ color: '#4ade80' }}>{online}</b></span>
           </div>
