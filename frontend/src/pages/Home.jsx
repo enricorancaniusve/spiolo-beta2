@@ -37,43 +37,25 @@ const PeopleIcon = () => (
   </svg>
 )
 
-// Bordo cespuglio — parte da x=0 pieno, arriva a x=600 pieno
-// Le ondulazioni organiche stanno solo nella fascia centrale superiore
 const BushEdge = () => (
-  <svg
-    viewBox="0 0 600 70"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ display: 'block', width: '100%' }}
-    preserveAspectRatio="none"
-  >
+  <svg viewBox="0 0 600 70" xmlns="http://www.w3.org/2000/svg"
+    style={{ display: 'block', width: '100%' }} preserveAspectRatio="none">
     <path
-      d="
-        M0,70
-        L0,0
-        C0,0 10,18 22,26
-        C34,34 46,22 60,14
-        C72,6 86,16 100,26
-        C114,36 126,16 142,8
-        C156,0 170,14 185,24
-        C198,34 212,16 228,8
-        C242,0 258,14 274,26
-        C290,38 304,18 320,10
-        C336,2 350,16 366,26
-        C380,36 394,18 410,10
-        C424,2 438,16 454,26
-        C468,36 480,20 496,12
-        C510,4 524,18 540,28
-        C554,36 568,20 584,12
-        C592,8 597,10 600,14
-        L600,70
-        Z
-      "
+      d="M0,70 L0,0
+        C0,0 10,18 22,26 C34,34 46,22 60,14
+        C72,6 86,16 100,26 C114,36 126,16 142,8
+        C156,0 170,14 185,24 C198,34 212,16 228,8
+        C242,0 258,14 274,26 C290,38 304,18 320,10
+        C336,2 350,16 366,26 C380,36 394,18 410,10
+        C424,2 438,16 454,26 C468,36 480,20 496,12
+        C510,4 524,18 540,28 C554,36 568,20 584,12
+        C592,8 597,10 600,14 L600,70 Z"
       fill="#2e6640"
     />
   </svg>
 )
 
-export default function Home({ showCompose, setShowCompose }) {
+export default function Home() {
   const [confessions, setConfessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -92,6 +74,10 @@ export default function Home({ showCompose, setShowCompose }) {
   const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
+
+  // Quando grande: mostra occhi/testa (top 35%)
+  // Quando piccola: mostra il cespuglio in basso (bottom)
+  const objPosY = 35 + transitionProgress * 30
 
   useEffect(() => {
     function handleScroll() { setScrollY(window.scrollY) }
@@ -178,19 +164,20 @@ export default function Home({ showCompose, setShowCompose }) {
         overflow: 'hidden',
         background: '#341d56',
       }}>
+        {/* cover = sempre larga 100%, niente bande laterali vuote */}
         <img
           src={spioloImg}
           alt="Lo Spiolo"
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'contain',
-            objectPosition: 'center bottom',
+            objectFit: 'cover',
+            objectPosition: `center ${objPosY}%`,
             display: 'block',
           }}
         />
 
-        {/* Logo grande sopra la testa — scompare scrollando */}
+        {/* Logo grande — sopra la testa, scompare scrollando */}
         <div style={{
           position: 'absolute',
           top: '18%',
@@ -211,7 +198,7 @@ export default function Home({ showCompose, setShowCompose }) {
           </span>
         </div>
 
-        {/* Stats in basso — appaiono scrollando */}
+        {/* Stats — appaiono scrollando */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -240,7 +227,7 @@ export default function Home({ showCompose, setShowCompose }) {
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
 
-      {/* ── BORDO CESPUGLIO — su sfondo viola, copre tutta la larghezza ── */}
+      {/* Bordo cespuglio */}
       <div style={{ background: '#341d56' }}>
         <BushEdge />
       </div>
