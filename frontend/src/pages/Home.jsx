@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-main5.svg'
+import spioloImg from '../spiolo-main.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -56,7 +56,6 @@ export default function Home({ showCompose, setShowCompose }) {
   const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
-
   const objectPosition = `center ${40 + transitionProgress * 40}%`
 
   useEffect(() => {
@@ -176,38 +175,34 @@ export default function Home({ showCompose, setShowCompose }) {
             Lo Spiolo
           </span>
         </div>
-
-        {/* Stats in basso */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'rgba(10,30,10,0.85)',
-          borderTop: '1px solid #1e4a28',
-          padding: '7px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 4,
-          fontSize: '0.74rem',
-          color: '#6a9a6a',
-          opacity: transitionProgress,
-          pointerEvents: transitionProgress > 0.5 ? 'all' : 'none',
-        }}>
-          <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <PeopleIcon />
-            <span>Online: <b style={{ color: '#4ade80' }}>{online}</b></span>
-          </div>
-        </div>
       </div>
 
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
 
-      {/* ── FEED ─────────────────────────────────────────────────────── */}
+      {/* ── FEED — tutto scorre normalmente ──────────────────────────── */}
       <div className="bush-feed">
+
+        {/* Stats nel feed — scorrono con le card */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 20px',
+          borderBottom: '1px solid rgba(0,0,0,0.15)',
+          background: 'rgba(0,0,0,0.15)',
+          fontSize: '0.8rem',
+          color: 'rgba(255,255,255,0.6)',
+          flexWrap: 'wrap',
+          gap: 6,
+        }}>
+          <span>Spiólate: <b style={{ color: '#f5d800' }}>{(stats.total || 0).toLocaleString('it-IT')}</b> · Oggi: <b style={{ color: '#f5d800' }}>{(stats.today || 0).toLocaleString('it-IT')}</b></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.6)' }}>
+            <PeopleIcon />
+            <span>Online: <b style={{ color: '#4ade80' }}>{online}</b></span>
+          </div>
+        </div>
+
         <div className="taxonomy-label">
           <div className="taxonomy-title">Spiolus paparazzus — Tassonomia del pettegolezzo</div>
           <p className="taxonomy-text">
