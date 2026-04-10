@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-main2.svg'
+import spioloImg from '../spiolo-main4.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -37,25 +37,7 @@ const PeopleIcon = () => (
   </svg>
 )
 
-const BushEdge = () => (
-  <svg viewBox="0 0 600 70" xmlns="http://www.w3.org/2000/svg"
-    style={{ display: 'block', width: '100%' }} preserveAspectRatio="none">
-    <path
-      d="M0,70 L0,0
-        C0,0 10,18 22,26 C34,34 46,22 60,14
-        C72,6 86,16 100,26 C114,36 126,16 142,8
-        C156,0 170,14 185,24 C198,34 212,16 228,8
-        C242,0 258,14 274,26 C290,38 304,18 320,10
-        C336,2 350,16 366,26 C380,36 394,18 410,10
-        C424,2 438,16 454,26 C468,36 480,20 496,12
-        C510,4 524,18 540,28 C554,36 568,20 584,12
-        C592,8 597,10 600,14 L600,70 Z"
-      fill="#2e6640"
-    />
-  </svg>
-)
-
-export default function Home() {
+export default function Home({ showCompose, setShowCompose }) {
   const [confessions, setConfessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -75,9 +57,7 @@ export default function Home() {
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
 
-  // Quando grande: mostra occhi/testa (top 35%)
-  // Quando piccola: mostra il cespuglio in basso (bottom)
-  const objPosY = 35 + transitionProgress * 30
+  const objectPosition = `center ${40 + transitionProgress * 40}%`
 
   useEffect(() => {
     function handleScroll() { setScrollY(window.scrollY) }
@@ -164,7 +144,6 @@ export default function Home() {
         overflow: 'hidden',
         background: '#341d56',
       }}>
-        {/* cover = sempre larga 100%, niente bande laterali vuote */}
         <img
           src={spioloImg}
           alt="Lo Spiolo"
@@ -172,12 +151,12 @@ export default function Home() {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            objectPosition: `center ${objPosY}%`,
+            objectPosition: objectPosition,
             display: 'block',
           }}
         />
 
-        {/* Logo grande — sopra la testa, scompare scrollando */}
+        {/* Logo grande sopra la testa */}
         <div style={{
           position: 'absolute',
           top: '18%',
@@ -198,7 +177,7 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Stats — appaiono scrollando */}
+        {/* Stats in basso */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -226,11 +205,6 @@ export default function Home() {
 
       {/* Spacer */}
       <div style={{ height: FULL_HEIGHT }} />
-
-      {/* Bordo cespuglio */}
-      <div style={{ background: '#341d56' }}>
-        <BushEdge />
-      </div>
 
       {/* ── FEED ─────────────────────────────────────────────────────── */}
       <div className="bush-feed">
