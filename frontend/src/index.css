@@ -1,17 +1,17 @@
 /* RESET */
 html, body {
-  background-color: #009640 !important;
+  background-color: #2e6640 !important;
   color: #f0f0e8 !important;
   margin: 0;
   padding: 0;
 }
 
 :root {
-  --bg-dark: #061a06;
-  --bush-green: #009640;
-  --bush-dark: #007a30;
-  --card-hole: #061a06;
-  --border-leaf: #007a30;
+  --bg-dark: #1a3d22;
+  --bush-green: #2e6640;
+  --bush-dark: #1e4a28;
+  --card-hole: #0f3d18;
+  --border-leaf: #1e4a28;
   --text-main: #f0f0e8;
   --text-gray: #a0c8a0;
   --accent: #f5d800;
@@ -44,11 +44,11 @@ nav.main-nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(0, 80, 30, 0.92);
+  background: rgba(30, 74, 40, 0.92);
   backdrop-filter: blur(10px);
 }
 nav.main-nav a {
-  color: rgba(240,240,232,0.55);
+  color: rgba(240,240,232,0.5);
   text-decoration: none;
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -69,12 +69,9 @@ nav.main-nav a.active::after {
   border-radius: 50%;
 }
 
-/* ── SPIOLO STICKY PARALLAX ───────────────────────────────────────────── */
-.home-container {
-  width: 100%;
-}
+/* ── LAYOUT ───────────────────────────────────────────────────────────── */
+.home-container { width: 100%; }
 
-/* ── BUSH FEED — verde cespuglio continuo ─────────────────────────────── */
 .bush-feed {
   background: var(--bush-green);
   min-height: 100vh;
@@ -85,8 +82,8 @@ nav.main-nav a.active::after {
 .taxonomy-label {
   position: relative;
   z-index: 1;
-  background: rgba(0,0,0,0.2);
-  border-bottom: 1px solid var(--border-leaf);
+  background: rgba(0,0,0,0.18);
+  border-bottom: 1px solid rgba(0,0,0,0.15);
   padding: 16px 20px;
 }
 .taxonomy-title {
@@ -109,17 +106,17 @@ nav.main-nav a.active::after {
   padding: 12px 16px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid var(--border-leaf);
+  border-bottom: 1px solid rgba(0,0,0,0.15);
   flex-wrap: wrap;
   position: relative;
   z-index: 1;
-  background: rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.12);
 }
 .tabs-row::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 20px;
   padding: 6px 13px;
   display: flex;
@@ -129,9 +126,9 @@ nav.main-nav a.active::after {
   flex-shrink: 0;
   transition: 0.2s;
 }
-.tab-btn:hover { background: rgba(0,0,0,0.4); }
+.tab-btn:hover { background: rgba(0,0,0,0.35); }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); }
-.tab-btn.active .tab-name { color: #061a06 !important; font-weight: 700; }
+.tab-btn.active .tab-name { color: #1a3d22 !important; font-weight: 700; }
 .tab-emoji { font-size: 0.9rem; }
 .tab-name { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.7); }
 
@@ -139,7 +136,7 @@ nav.main-nav a.active::after {
 .feed {
   opacity: 0;
   transition: opacity 0.4s ease;
-  padding: 16px 16px 0;
+  padding: 20px 16px 0;
   position: relative;
   z-index: 1;
 }
@@ -158,50 +155,36 @@ nav.main-nav a.active::after {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── CARD — "buco nel cespuglio" ──────────────────────────────────────── */
+/* ── CARD ORGANICA — buco nel cespuglio ───────────────────────────────── */
 .confession-card {
   background: var(--card-hole);
-  border-radius: 22px 16px 20px 18px;
-  border: 3px solid var(--border-leaf);
-  padding: 16px;
-  margin-bottom: 14px;
+  padding: 28px 24px;
+  margin-bottom: 20px;
   position: relative;
-  overflow: hidden;
-  box-shadow:
-    inset 0 3px 12px rgba(0,0,0,0.8),
-    inset 0 -1px 6px rgba(0,0,0,0.5),
-    0 2px 0 rgba(0,150,64,0.4);
-}
+  color: var(--text-main);
 
-/* Foglioline agli angoli */
-.confession-card::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  width: 24px;
-  height: 24px;
-  background: var(--bush-green);
-  border-radius: 50% 20% 50% 20%;
-  pointer-events: none;
-}
-.confession-card::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  right: -6px;
-  width: 20px;
-  height: 20px;
-  background: var(--bush-green);
-  border-radius: 20% 50% 20% 50%;
-  pointer-events: none;
+  /* Forma organica — bordi ondulati su tutti i lati */
+  clip-path: polygon(
+    2% 4%, 5% 1%, 10% 3%, 16% 0%, 22% 2%, 28% 0%, 34% 2%, 40% 0%, 46% 2%, 52% 0%,
+    58% 2%, 64% 0%, 70% 2%, 76% 0%, 82% 2%, 88% 0%, 93% 2%, 97% 1%, 100% 4%,
+    99% 9%, 100% 16%, 99% 23%, 100% 30%, 99% 37%, 100% 44%, 99% 51%, 100% 58%,
+    99% 65%, 100% 72%, 99% 79%, 100% 86%, 99% 93%, 100% 100%,
+    95% 98%, 90% 100%, 85% 98%, 80% 100%, 75% 98%, 70% 100%, 65% 98%, 60% 100%,
+    55% 98%, 50% 100%, 45% 98%, 40% 100%, 35% 98%, 30% 100%, 25% 98%, 20% 100%,
+    15% 98%, 10% 100%, 5% 98%, 0% 100%,
+    1% 93%, 0% 86%, 1% 79%, 0% 72%, 1% 65%, 0% 58%, 1% 51%, 0% 44%,
+    1% 37%, 0% 30%, 1% 23%, 0% 16%, 1% 9%
+  );
+
+  /* Ombra che funziona con clip-path */
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.45));
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .category-badge {
@@ -244,12 +227,12 @@ nav.main-nav a.active::after {
   display: inline-block;
   height: 10px;
   border-radius: 3px;
-  background: rgba(106,154,106,0.2);
+  background: rgba(150,200,150,0.2);
   animation: barPulse 2.4s ease-in-out infinite;
 }
 @keyframes barPulse {
   0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.5; background: rgba(106,154,106,0.4); }
+  50% { opacity: 0.5; background: rgba(150,200,150,0.4); }
 }
 
 .unlock-hint {
@@ -283,15 +266,14 @@ nav.main-nav a.active::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.35);
   padding: 10px 12px;
   border-radius: 12px;
   margin: 10px 0;
-  border: 1px solid rgba(255,255,255,0.03);
 }
 .play-btn {
   background: #f0f0e8;
-  color: #061a06;
+  color: #0f3d18;
   border: none;
   width: 36px;
   height: 36px;
@@ -330,13 +312,13 @@ nav.main-nav a.active::after {
   gap: 6px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(0,122,48,0.5);
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 .reaction-btn {
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(0,122,48,0.5);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -348,7 +330,7 @@ nav.main-nav a.active::after {
   transition: 0.2s;
   gap: 2px;
 }
-.reaction-btn:hover { background: rgba(0,0,0,0.5); transform: scale(1.08); }
+.reaction-btn:hover { background: rgba(0,0,0,0.4); transform: scale(1.08); }
 .reaction-btn.active { background: rgba(245,216,0,0.15); border-color: var(--accent); }
 .emoji-icon { font-size: 1.2rem; line-height: 1; }
 .reaction-count { font-size: 0.62rem; color: var(--text-main); opacity: 0.75; }
@@ -366,7 +348,7 @@ nav.main-nav a.active::after {
 .fab-btn {
   pointer-events: all;
   background: var(--accent);
-  color: #061a06;
+  color: #1a3d22;
   border: none;
   padding: 15px 36px;
   border-radius: 50px;
@@ -374,11 +356,11 @@ nav.main-nav a.active::after {
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 3px rgba(0,150,64,0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 0 0 3px rgba(46,102,64,0.4);
   transition: transform 0.2s, box-shadow 0.2s;
   white-space: nowrap;
 }
-.fab-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.fab-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.45); }
 
 /* ── MODAL ────────────────────────────────────────────────────────────── */
 .modal-overlay {
@@ -410,7 +392,7 @@ nav.main-nav a.active::after {
   top: 16px; right: 16px;
   z-index: 10;
   background: rgba(0,0,0,0.4);
-  border: 1px solid var(--border-leaf);
+  border: 1px solid rgba(255,255,255,0.15);
   color: var(--text-gray);
   width: 32px; height: 32px;
   border-radius: 50%;
@@ -425,8 +407,8 @@ nav.main-nav a.active::after {
 
 /* ── COMPOSE FORM ─────────────────────────────────────────────────────── */
 .compose-form {
-  background: #040e04;
-  border: 1px solid var(--border-leaf);
+  background: #0a2a10;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
   padding: 26px;
   display: flex;
@@ -446,8 +428,8 @@ nav.main-nav a.active::after {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid var(--border-leaf);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.15);
   color: rgba(255,255,255,0.6);
   padding: 5px 11px;
   border-radius: 20px;
@@ -458,7 +440,7 @@ nav.main-nav a.active::after {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.compose-cat-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--text-main); }
+.compose-cat-btn:hover { border-color: rgba(255,255,255,0.35); color: var(--text-main); }
 .compose-cat-btn.active {
   background: rgba(245,216,0,0.12);
   border-color: var(--accent);
@@ -472,7 +454,7 @@ nav.main-nav a.active::after {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: rgba(0,100,40,0.3);
+  background: rgba(0,80,30,0.3);
   border: 1px solid rgba(74,222,128,0.3);
   color: #4ade80;
   padding: 16px 22px;
@@ -528,7 +510,7 @@ nav.main-nav a.active::after {
 .compose-spinner {
   width: 26px; height: 26px;
   border-radius: 50%;
-  border: 2px solid var(--border-leaf);
+  border: 2px solid rgba(255,255,255,0.15);
   border-top-color: var(--accent);
   animation: spioloSpin 0.8s linear infinite;
 }
@@ -562,7 +544,7 @@ nav.main-nav a.active::after {
 .compose-preview-actions { display: flex; gap: 9px; justify-content: flex-end; align-items: center; }
 .compose-back-btn {
   background: transparent;
-  border: 1px solid var(--border-leaf);
+  border: 1px solid rgba(255,255,255,0.15);
   color: var(--text-gray);
   padding: 9px 14px;
   border-radius: 10px;
@@ -571,10 +553,10 @@ nav.main-nav a.active::after {
   font-size: 0.82rem;
   transition: 0.2s;
 }
-.compose-back-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--text-main); }
+.compose-back-btn:hover { border-color: rgba(255,255,255,0.35); color: var(--text-main); }
 .compose-submit-btn {
   background: var(--accent);
-  color: #061a06;
+  color: #1a3d22;
   border: none;
   padding: 9px 20px;
   border-radius: 10px;
@@ -589,9 +571,9 @@ nav.main-nav a.active::after {
 
 /* ── LOAD MORE ────────────────────────────────────────────────────────── */
 .load-more-btn {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.65);
   padding: 9px 26px;
   border-radius: 20px;
   cursor: pointer;
@@ -599,7 +581,7 @@ nav.main-nav a.active::after {
   font-size: 0.82rem;
   transition: 0.2s;
 }
-.load-more-btn:hover { background: rgba(0,0,0,0.4); color: var(--text-main); }
+.load-more-btn:hover { background: rgba(0,0,0,0.35); color: var(--text-main); }
 .load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── PAGINE ALTRE ─────────────────────────────────────────────────────── */
@@ -615,7 +597,6 @@ nav.main-nav a.active::after {
 .loading { text-align: center; color: rgba(255,255,255,0.6); padding: 40px 0; }
 .empty-state { text-align: center; color: rgba(255,255,255,0.6); padding: 40px 20px; line-height: 1.8; }
 
-/* ── APP WRAPPER padding per pagine non-home ──────────────────────────── */
 #app-wrapper { padding: 0 20px; }
 
 /* ── ANIMATIONS ───────────────────────────────────────────────────────── */
@@ -631,13 +612,14 @@ nav.main-nav a.active::after {
 /* ── FOOTER ───────────────────────────────────────────────────────────── */
 footer {
   padding: 20px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.25);
   font-size: 0.7rem;
   text-align: center;
 }
 
 /* ── MOBILE ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
+  .confession-card { padding: 24px 18px; }
   .compose-form { padding: 18px; }
   .reaction-btn { width: 46px; height: 46px; }
   .fab-btn { padding: 13px 26px; font-size: 0.9rem; }
