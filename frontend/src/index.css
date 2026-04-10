@@ -1,6 +1,5 @@
 /* RESET */
 html, body {
-  /* Viola come sfondo globale — appare ai lati quando il cespuglio si stringe */
   background-color: #341d56 !important;
   color: #f0f0e8 !important;
   margin: 0;
@@ -10,7 +9,6 @@ html, body {
 :root {
   --bg-purple: #341d56;
   --bush-green: #2e6640;
-  --bush-dark: #1e4a28;
   --card-hole: #0f3d18;
   --text-main: #f0f0e8;
   --text-gray: #a0c8a0;
@@ -28,16 +26,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Colonna centrale verde — massimo 600px centrata */
 #root, #app-wrapper {
   width: 100%;
   max-width: 600px;
   padding: 0;
-  /* Verde solo nella colonna centrale */
   background: var(--bush-green);
 }
 
-/* ── NAV — trasparente con sfondo viola ───────────────────────────────── */
+/* ── NAV ──────────────────────────────────────────────────────────────── */
 nav.main-nav {
   display: flex;
   align-items: center;
@@ -47,12 +43,9 @@ nav.main-nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  /* Viola trasparente — si fonde con lo sfondo SVG */
   background: rgba(52, 29, 86, 0.88);
   backdrop-filter: blur(12px);
 }
-
-/* Logo "Lo Spiolo" a sinistra */
 .nav-logo {
   font-family: var(--font-fancy);
   font-size: 1.1rem;
@@ -60,8 +53,6 @@ nav.main-nav {
   letter-spacing: -0.3px;
   flex-shrink: 0;
 }
-
-/* Link nav a destra */
 .nav-links {
   display: flex;
   gap: 24px;
@@ -93,17 +84,13 @@ nav.main-nav {
 /* ── LAYOUT ───────────────────────────────────────────────────────────── */
 .home-container { width: 100%; }
 
-/* Feed su sfondo verde cespuglio */
 .bush-feed {
   background: var(--bush-green);
   min-height: 100vh;
-  position: relative;
 }
 
 /* ── TAXONOMY ─────────────────────────────────────────────────────────── */
 .taxonomy-label {
-  position: relative;
-  z-index: 1;
   background: rgba(0,0,0,0.18);
   border-bottom: 1px solid rgba(0,0,0,0.15);
   padding: 16px 20px;
@@ -130,8 +117,6 @@ nav.main-nav {
   scrollbar-width: none;
   border-bottom: 1px solid rgba(0,0,0,0.15);
   flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
   background: rgba(0,0,0,0.12);
 }
 .tabs-row::-webkit-scrollbar { display: none; }
@@ -158,9 +143,7 @@ nav.main-nav {
 .feed {
   opacity: 0;
   transition: opacity 0.4s ease;
-  padding: 20px 16px 0;
-  position: relative;
-  z-index: 1;
+  padding: 24px 16px 0;
 }
 .feed.feed-visible { opacity: 1; }
 
@@ -177,11 +160,12 @@ nav.main-nav {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── CARD ORGANICA — buco nel cespuglio ───────────────────────────────── */
+/* ── CARD ORGANICA ────────────────────────────────────────────────────── */
 .confession-card {
   background: var(--card-hole);
   padding: 28px 24px;
-  margin-bottom: 20px;
+  /* Più spazio tra le card */
+  margin-bottom: 32px;
   position: relative;
   color: var(--text-main);
   clip-path: polygon(
@@ -195,7 +179,23 @@ nav.main-nav {
     1% 93%, 0% 86%, 1% 79%, 0% 72%, 1% 65%, 0% 58%, 1% 51%, 0% 44%,
     1% 37%, 0% 30%, 1% 23%, 0% 16%, 1% 9%
   );
-  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.45));
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+}
+
+/* Ombra interna — simula profondità del buco */
+.confession-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Tutto il contenuto sopra l'ombra */
+.confession-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .card-header {
@@ -231,7 +231,6 @@ nav.main-nav {
   margin-bottom: 4px;
   color: var(--text-main);
 }
-.revealed-text { color: var(--text-main); }
 
 /* Testo censurato */
 .censored-bars {
