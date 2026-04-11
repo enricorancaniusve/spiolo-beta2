@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-mainX.svg'
+import spioloImg from '../spiolo-mainXI.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
