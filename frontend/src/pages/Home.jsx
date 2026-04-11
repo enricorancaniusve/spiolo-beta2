@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-main12.svg'
+import spioloImg from '../spiolo-main14.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -143,15 +143,14 @@ export default function Home({ showCompose, setShowCompose }) {
         overflow: 'hidden',
         background: '#341d56',
       }}>
-        <img
-          src={spioloImg}
-          alt="Lo Spiolo"
+        <object
+          data={spioloImg}
+          type="image/svg+xml"
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            objectPosition: objectPosition,
             display: 'block',
+            pointerEvents: 'none',
           }}
         />
 
