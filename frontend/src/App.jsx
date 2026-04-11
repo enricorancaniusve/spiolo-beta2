@@ -37,9 +37,10 @@ export default function App() {
           <Route path="/spiola/:id" element={<SpiolaDetail />} />
         </Routes>
 
-        <footer style={{ textAlign: 'center', marginTop: 80, padding: 30, opacity: 0.3, fontSize: '0.7rem' }}>
-          SPIOLO — Spiolus paparazzus — 2026
-        </footer>
+       <footer style={{ textAlign: 'center', marginTop: 80, padding: 30, opacity: 0.3, fontSize: '0.7rem', lineHeight: 1.8 }}>
+  SPIOLO — Spiolus paparazzus — 2026<br/>
+  Teorie e Linguaggi della Percezione Visiva — IUSVE
+</footer>
       </div>
 
       {showFab && (
