@@ -36,14 +36,19 @@ const PeopleIcon = () => (
   </svg>
 )
 
-// SVG dello spiolo inline — così possiamo animare le pupille con CSS
 const SpioloSVG = ({ animate }) => (
   <svg
-    id="Livello_1"
     xmlns="http://www.w3.org/2000/svg"
     xmlnsXlink="http://www.w3.org/1999/xlink"
     viewBox="0 0 600 600"
-    style={{ width: '100%', height: '100%', display: 'block' }}
+    style={{
+      width: '100%',
+      height: 'auto',
+      display: 'block',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+    }}
   >
     <defs>
       <linearGradient id="Sfumatura_senza_nome" x1="300" y1="629.08" x2="300" y2="-.11" gradientTransform="translate(0 .11)" gradientUnits="userSpaceOnUse">
@@ -51,8 +56,6 @@ const SpioloSVG = ({ animate }) => (
         <stop offset=".23" stopColor="#614c9a"/>
         <stop offset=".82" stopColor="#342256"/>
       </linearGradient>
-
-      {/* Animazione pupille — si attiva solo quando animate=true */}
       <style>{`
         @keyframes sguardo {
           0%   { transform: translateX(0px); }
@@ -82,7 +85,6 @@ const SpioloSVG = ({ animate }) => (
         }
       `}</style>
     </defs>
-
     <g id="Livello_2">
       <rect width="600" height="629.19" fill="url(#Sfumatura_senza_nome)"/>
     </g>
@@ -134,7 +136,9 @@ export default function Home({ showCompose, setShowCompose }) {
   const [hasMore, setHasMore] = useState(true)
   const [visible, setVisible] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [idle, setIdle] = useState(false)
   const pingRef = useRef(null)
+  const idleTimer = useRef(null)
 
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800
   const FULL_HEIGHT = vh
@@ -143,30 +147,22 @@ export default function Home({ showCompose, setShowCompose }) {
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
   const isAnchored = scrollY >= SCROLL_RANGE
-
-  // Anima le pupille solo quando l'immagine è grande (non ancorata) e non si sta scrollando
-  const [idle, setIdle] = useState(false)
-  const idleTimer = useRef(null)
+  const animatePupils = idle && !isAnchored
 
   useEffect(() => {
     function handleScroll() {
       setScrollY(window.scrollY)
       setIdle(false)
       clearTimeout(idleTimer.current)
-      // Dopo 2 secondi di inattività, attiva l'animazione
       idleTimer.current = setTimeout(() => setIdle(true), 2000)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    // All'apertura, avvia animazione dopo 2s
     idleTimer.current = setTimeout(() => setIdle(true), 2000)
     return () => {
       window.removeEventListener('scroll', handleScroll)
       clearTimeout(idleTimer.current)
     }
   }, [])
-
-  // Pupille animate solo quando immagine è grande (non ancorata) e idle
-  const animatePupils = idle && !isAnchored
 
   async function ping() {
     try {
@@ -246,8 +242,8 @@ export default function Home({ showCompose, setShowCompose }) {
         zIndex: 10,
         overflow: 'hidden',
         background: '#341d56',
+        /* position:relative serve perché SpioloSVG usa position:absolute */
       }}>
-        {/* SVG inline — pupille animabili */}
         <SpioloSVG animate={animatePupils} />
 
         {/* Logo grande sopra la testa */}
@@ -259,6 +255,7 @@ export default function Home({ showCompose, setShowCompose }) {
           textAlign: 'center',
           opacity: bigLogoOpacity,
           pointerEvents: 'none',
+          zIndex: 2,
         }}>
           <span style={{
             fontFamily: 'Fraunces, serif',
@@ -271,7 +268,7 @@ export default function Home({ showCompose, setShowCompose }) {
           </span>
         </div>
 
-        {/* Sfumatura ridotta in basso */}
+        {/* Sfumatura in basso */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -280,6 +277,7 @@ export default function Home({ showCompose, setShowCompose }) {
           height: '20%',
           background: 'linear-gradient(to bottom, transparent, rgba(46,102,64,0.7))',
           pointerEvents: 'none',
+          zIndex: 2,
         }} />
       </div>
 
@@ -288,7 +286,6 @@ export default function Home({ showCompose, setShowCompose }) {
 
       {/* ── FEED ─────────────────────────────────────────────────────── */}
       <div className="bush-feed">
-
         <div style={{
           display: 'flex',
           alignItems: 'center',
