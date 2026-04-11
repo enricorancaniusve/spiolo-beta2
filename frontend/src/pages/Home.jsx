@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import ConfessionCard from '../components/ConfessionCard'
-import spioloImg from '../spiolo-main12.svg'
+import spioloImg from '../spiolo-main13.svg'
 
 const CAT_DATA = [
   { id: null, name: 'Tutti', emoji: '🌐' },
@@ -56,7 +56,6 @@ export default function Home({ showCompose, setShowCompose }) {
   const SCROLL_RANGE = FULL_HEIGHT - SMALL_HEIGHT
   const currentHeight = Math.max(SMALL_HEIGHT, FULL_HEIGHT - scrollY)
   const transitionProgress = Math.min(1, scrollY / SCROLL_RANGE)
-  const objectPosition = `center ${40 + transitionProgress * 40}%`
 
   useEffect(() => {
     function handleScroll() { setScrollY(window.scrollY) }
@@ -143,15 +142,18 @@ export default function Home({ showCompose, setShowCompose }) {
         overflow: 'hidden',
         background: '#341d56',
       }}>
-        <img
-          src={spioloImg}
-          alt="Lo Spiolo"
+        {/* <object> invece di <img> — permette animazioni SMIL nell'SVG */}
+        <object
+          data={spioloImg}
+          type="image/svg+xml"
           style={{
             width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: objectPosition,
+            height: 'auto',
             display: 'block',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            pointerEvents: 'none',
           }}
         />
 
@@ -164,6 +166,7 @@ export default function Home({ showCompose, setShowCompose }) {
           textAlign: 'center',
           opacity: bigLogoOpacity,
           pointerEvents: 'none',
+          zIndex: 2,
         }}>
           <span style={{
             fontFamily: 'Fraunces, serif',
@@ -176,7 +179,7 @@ export default function Home({ showCompose, setShowCompose }) {
           </span>
         </div>
 
-        {/* Sfumatura ridotta — solo 20% di altezza e opacità bassa */}
+        {/* Sfumatura in basso */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -185,6 +188,7 @@ export default function Home({ showCompose, setShowCompose }) {
           height: '20%',
           background: 'linear-gradient(to bottom, transparent, rgba(46,102,64,0.7))',
           pointerEvents: 'none',
+          zIndex: 2,
         }} />
       </div>
 
@@ -193,8 +197,6 @@ export default function Home({ showCompose, setShowCompose }) {
 
       {/* ── FEED ─────────────────────────────────────────────────────── */}
       <div className="bush-feed">
-
-        {/* Stats nel feed */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
