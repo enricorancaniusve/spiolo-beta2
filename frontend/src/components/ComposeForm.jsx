@@ -242,7 +242,7 @@ export default function ComposeForm({ onSubmitted }) {
 
       {/* Titolo */}
       <div className="compose-title">
-        <span>Registra il tuo segreto</span>
+        <span>Racconta il pettegolezzo</span>
         <span style={{ fontSize: '1.3rem' }}>🗣️</span>
       </div>
 
